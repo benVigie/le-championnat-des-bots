@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "experimentalDecorators": true,
+    "module": "commonjs",
+    "outDir": "dist",
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "inlineSourceMap": true,
+    "inlineSources": true
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
+}

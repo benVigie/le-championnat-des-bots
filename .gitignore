@@ -1,0 +1,17 @@
+
+# Node modules as usual
+node_modules
+dist
+npm-debug.log
+
+# Log files
+*.log
+logs
+
+# Coverage generated files
+.nyc_output
+coverage
+
+#lolMac & vs code
+.DS_Store
+TODO

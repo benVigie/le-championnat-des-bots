@@ -1,0 +1,26 @@
+{
+  "extends": "tslint:recommended",
+  "rules": {
+    "max-line-length": {
+      "options": [
+        180
+      ]
+    },
+    "variable-name": false,
+    "no-console": false,
+    "member-access": false,
+    "member-ordering": false,
+    "no-var-requires": false,
+    "one-line": false,
+    "curly": [
+      true,
+      "ignore-same-line"
+    ],
+    "no-consecutive-blank-lines": [
+      true,
+      2
+    ],
+    "object-literal-sort-keys": false,
+    "ordered-imports": false
+  }
+}
