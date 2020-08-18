@@ -28,13 +28,15 @@ export default class Tools {
   }
 
   /** Test if the given error is an Axios error. If so, display usefull data to debug */
-  static dumpAxiosError(error: any): void {
+  static dumpAxiosError(error: any): boolean {
     if (error.config && error.config.url) {
       console.error(chalk`{red Request: ${error.config.method.toUpperCase()} - ${error.config.url}
 Data: ${error.config.data}
 Response code: ${error.response.status}
 Response: ${JSON.stringify(error.response.data)}}
 `);
+      return true;
     }
+    return false;
   }
 }
