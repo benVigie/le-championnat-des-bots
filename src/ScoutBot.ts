@@ -27,11 +27,18 @@ export default class ScoutBot {
   /** Start the scout bot */
   async startScouting(): Promise<void> {
     try {
+      // DIsplay API usage and try to load today requests to save identical calls
       await this.displayApiStatus();
-      this._nextGames = await this._api.getNextGames(10);
+      this._nextGames = await this.loadFixtures();
 
-      // Retrieve and attach pronostics
-      await this._api.getAndAttachPronostics(this._nextGames);
+      // If nothing was saved today, retrieved games
+      if (!this._nextGames.length) {
+        this._nextGames = await this._api.getNextGames(10);
+
+        // Retrieve and attach pronostics and save the day :p
+        await this._api.getAndAttachPronostics(this._nextGames);
+        await this.saveFixtures(this._nextGames);
+      }
 
       this.displayNextGames();
     }
@@ -51,7 +58,6 @@ export default class ScoutBot {
   /** Display next games with all infos in console */
   private async displayNextGames(): Promise<void> {
     let currentRound = "";
-    const nextGames: IFixture[] = [];
 
     for (const fixture of this._nextGames) {
       if (fixture.round !== currentRound) {
@@ -94,5 +100,26 @@ export default class ScoutBot {
   private displayPronostic(title: string, values: string[]): void {
     console.log(chalk`{bold.blue ${title}:}`);
     console.log(chalk`{yellow ${values.join("  -  ")}}`);
+  }
+
+  /** Save daily games request to save api rates */
+  private async saveFixtures(games: IFixture[]): Promise<void> {
+    const now = DateTime.local();
+    await Tools.writeFile(`./${now.toISODate()}.json`, JSON.stringify(games, null, 2));
+  }
+
+  /** Save daily games request to save api rates */
+  private async loadFixtures(): Promise<IFixture[]> {
+    const now = DateTime.local();
+
+    try {
+      const retrieved = await Tools.readFile<IFixture[]>(`./${now.toISODate()}.json`);
+      console.log(chalk`{gray Daily fixtures loaded}`);
+      return retrieved;
+    }
+    catch {
+      console.log(chalk`{gray No daily fixtures saved, call API...}`);
+    }
+    return [];
   }
 }

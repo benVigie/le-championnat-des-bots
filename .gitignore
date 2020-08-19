@@ -7,6 +7,7 @@ npm-debug.log
 # Log files
 *.log
 logs
+20*.json
 
 # Coverage generated files
 .nyc_output
