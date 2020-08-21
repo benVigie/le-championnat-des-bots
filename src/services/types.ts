@@ -1,3 +1,5 @@
+export const NO_PREDICTION_AVAILABLE = "No predictions available";
+
 /** All different kind of bets */
 export enum BetTypes {
   MatchWinner = "Match Winner",
@@ -8,6 +10,31 @@ export enum BetTypes {
   AwayTeamScore = "Away Team Score a Goal",
   HomeAway = "Home/Away",
   BothTeamsScore = "Both Teams Score",
+}
+
+/** Final type of game. Either a draw or a Home/Away victory */
+export enum EndGameType {
+  Home = "Home",
+  Away = "Away",
+  Draw = "Draw"
+}
+
+/** Match winner */
+export enum MatchWinner {
+  Home = "1",
+  HomeOrDraw = "1 N",
+  Draw = "N",
+  AwayOrDraw = "N 2",
+  Away = "2"
+}
+
+/** Enum strategy confidence */
+export enum StrategyConfidence {
+  Strong = "95% - high odds gap and pronostic matching",
+  Good = "85% - high odds gap but different pronostics",
+  GoodEnough = "75% - Good odds and pronostic matching",
+  Medium = "65% - Good odds but different pronostics",
+  NotSure = "30% - Odds not sure",
 }
 
 /** Football API status */
@@ -113,11 +140,12 @@ export interface IFixture {
   score: IScore;
   pronostics?: IPrediction;
   odds?: IBookmaker;
+  strategy?: IStrategyResult;
 }
 
 /** Football API prediction. Based on their data */
 export interface IPrediction {
-  match_winner: string,
+  match_winner: MatchWinner,
   under_over: string,
   goals_home: string,
   goals_away: string,
@@ -164,6 +192,19 @@ export interface IBetValues {
   value: string;
   odd: string;
 }
+/** Bet value (name) and odd */
+export interface IBetValueNumber {
+  value: string;
+  odd: number;
+}
+
+/** Strategy data */
+export interface IStrategyResult {
+  oddGap: number;
+  oddMatchWinner: MatchWinner;
+  confidence: number;
+  expectedScores: string[];
+}
 
 /** Api error response interface */
 export interface IApiResponse {
@@ -179,6 +220,11 @@ export interface IApiErrorResponse extends IApiResponse {
 /** Api status response interface */
 export interface IApiStatusResponse extends IApiResponse {
   status: IApiStatus;
+}
+
+/** Api rounds response interface */
+export interface IApiRoundsResponse extends IApiResponse {
+  fixtures: string[];
 }
 
 /** Api fixtures response interface */
