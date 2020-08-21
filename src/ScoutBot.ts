@@ -4,6 +4,8 @@ import Tools from "./services/Tools";
 import { IFixture, BetTypes } from "./services/types";
 import * as chalk from "chalk";
 import { DateTime } from "luxon";
+import Strategy from "./services/Stategy";
+import ConsoleFormater from "./services/ConsoleFormater";
 
 /** ScoutBot is the app orchestrator */
 export default class ScoutBot {
@@ -11,11 +13,13 @@ export default class ScoutBot {
   private static _mode: AppMode;
   private _api: FootballApi;
   private _nextGames: IFixture[];
+  private _strategy: Strategy;
 
   constructor(mode: AppMode, config: IConfiguration, token: string) {
     ScoutBot._mode = mode;
     ScoutBot._config = config;
     this._api = new FootballApi(token);
+    this._strategy = new Strategy(this._api);
   }
 
   /** Retrieve app mode, either dev or production */
@@ -33,14 +37,19 @@ export default class ScoutBot {
 
       // If nothing was saved today, retrieved games
       if (!this._nextGames.length) {
-        this._nextGames = await this._api.getNextGames(10);
+        this._nextGames = await this._api.getCurrentRoundGames();
 
         // Retrieve and attach pronostics and save the day :p
         await this._api.getAndAttachPronostics(this._nextGames);
         await this.saveFixtures(this._nextGames);
       }
 
-      this.displayNextGames();
+      // Display next games
+      ConsoleFormater.displayNextGames(this._nextGames, this._api);
+
+      // Display strategy
+      const strategySorted = this._strategy.sortGamesByOdds(this._nextGames);
+      ConsoleFormater.displayStrategy(strategySorted, this._api);
     }
     catch (error) {
       if (!Tools.dumpAxiosError(error)) {
@@ -53,53 +62,6 @@ export default class ScoutBot {
   private async displayApiStatus(): Promise<void> {
     const status = await this._api.getStatus();
     console.log(chalk`{gray Daily requests: {bold ${status.requests}/${status.requests_limit_day}}}`);
-  }
-
-  /** Display next games with all infos in console */
-  private async displayNextGames(): Promise<void> {
-    let currentRound = "";
-
-    for (const fixture of this._nextGames) {
-      if (fixture.round !== currentRound) {
-        currentRound = fixture.round;
-        console.log(chalk`{bold.yellow \n\n${currentRound}}\n`);
-      }
-
-      const dateTime = DateTime.fromISO(fixture.event_date, { locale: "fr" });
-      console.log(chalk`${dateTime.toFormat("EEEE dd MMMM, à HH:mm")}`);
-      console.log(chalk`{bold.cyan ${fixture.homeTeam.team_name}\t${fixture.awayTeam.team_name}}`);
-
-      // Display pronostics if we have them
-      if (fixture.pronostics) {
-        console.log(chalk`\n{bold.green ${fixture.pronostics.advice}}`);
-        console.log(chalk`{green ${fixture.pronostics.winning_percent.home}\t${fixture.pronostics.winning_percent.draws}\t${fixture.pronostics.winning_percent.away}}`);
-
-        this.displayPronostic("Forme", [fixture.pronostics.comparison.forme.home, fixture.pronostics.comparison.forme.away]);
-        this.displayPronostic("Attaque", [fixture.pronostics.comparison.att.home, fixture.pronostics.comparison.att.away]);
-        this.displayPronostic("Defense", [fixture.pronostics.comparison.def.home, fixture.pronostics.comparison.def.away]);
-        this.displayPronostic("H2H", [fixture.pronostics.comparison.h2h.home, fixture.pronostics.comparison.h2h.away]);
-        this.displayPronostic("Buts H2H", [fixture.pronostics.comparison.goals_h2h.home, fixture.pronostics.comparison.goals_h2h.away]);
-      }
-
-      // Display bookmakers odds if we have them
-      if (fixture.odds) {
-        console.log(chalk`\n{bold.green ${fixture.odds.bookmaker_name} odds:}`);
-        let bet = this._api.getBet(fixture.odds.bets, BetTypes.MatchWinner)
-        if (bet.length) this.displayPronostic(BetTypes.MatchWinner, [`${bet[0].value}: ${bet[0].odd}`, `${bet[1].value}: ${bet[1].odd}`, `${bet[2].value}: ${bet[2].odd}`]);
-
-        bet = this._api.getBet(fixture.odds.bets, BetTypes.ExactScore)
-        bet = bet.sort((a, b) => { return parseFloat(a.odd) - parseFloat(b.odd) });
-        if (bet.length) this.displayPronostic(BetTypes.ExactScore, [`${bet[0].value}: ${bet[0].odd}`, `${bet[1].value}: ${bet[1].odd}`, `${bet[2].value}: ${bet[2].odd}`, `${bet[3].value}: ${bet[3].odd}`]);
-      }
-
-      console.log(chalk`{gray \n---\n}`);
-    }
-  }
-
-  /** Helper for pronostic display */
-  private displayPronostic(title: string, values: string[]): void {
-    console.log(chalk`{bold.blue ${title}:}`);
-    console.log(chalk`{yellow ${values.join("  -  ")}}`);
   }
 
   /** Save daily games request to save api rates */
