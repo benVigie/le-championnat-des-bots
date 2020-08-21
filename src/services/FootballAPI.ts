@@ -1,6 +1,5 @@
 import Axios from "axios";
-import Tools from "./Tools";
-import { IApiErrorResponse, IApiStatus, IApiStatusResponse, IApiFixturesResponse, IFixture, IPrediction, IApiPredictionsResponse, IApiBookmakerOddsResponse, IBookmakerBet, IBetValues } from "./types";
+import { IApiErrorResponse, IApiStatus, IApiStatusResponse, IApiFixturesResponse, IFixture, IApiPredictionsResponse, IApiBookmakerOddsResponse, IBookmakerBet, IBetValues, IApiRoundsResponse } from "./types";
 
 /** Football API URL */
 const FOOTBALL_API_URL = "https://v2.api-football.com";
@@ -45,14 +44,23 @@ export default class FootballApi {
     return apiResponse.status;
   }
 
-  /** Get live API quota status */
+  /** Get the asked number of next games, ordered by date */
   async getNextGames(nbGames: number = 20): Promise<IFixture[]> {
     const apiResponse = await this.performsFootballApiCall<IApiFixturesResponse>(`/fixtures/league/${LIGUE_1_ID}/next/${nbGames}?timezone=Europe/Paris`);
     return apiResponse.fixtures;
   }
 
+  /** Get all games for the current round */
+  async getCurrentRoundGames(): Promise<IFixture[]> {
+    const roundResponse = await this.performsFootballApiCall<IApiRoundsResponse>(`/fixtures/rounds/${LIGUE_1_ID}/current`);
+    const round = roundResponse.fixtures[0];
+    const apiResponse = await this.performsFootballApiCall<IApiFixturesResponse>(`/fixtures/league/${LIGUE_1_ID}/${round}?timezone=Europe/Paris`);
+    return apiResponse.fixtures;
+  }
+
   /** Get pronostics for the given fixtures. Retrieve both Football API and bookmakers pronostics */
   async getAndAttachPronostics(games: IFixture[]): Promise<void> {
+    // tslint:disable-next-line: prefer-for-of
     for (let i = 0; i < games.length; i++) {
       // Retrieve pronostics and attach them
       const pronosticsResponse = await this.performsFootballApiCall<IApiPredictionsResponse>(`/predictions/${games[i].fixture_id}`);
