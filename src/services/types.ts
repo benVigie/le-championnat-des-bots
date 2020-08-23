@@ -59,6 +59,7 @@ export interface ITeam {
   team_id: number;
   team_name: string;
   logo?: string;
+  potentialScore?: IPotentialScore;
 }
 
 interface ITeamStatTotal {
@@ -204,6 +205,12 @@ export interface IStrategyResult {
   oddMatchWinner: MatchWinner;
   confidence: number;
   expectedScores: string[];
+}
+
+/** Min and max potential scores */
+export interface IPotentialScore {
+  min: number,
+  max: number,
 }
 
 /** Api error response interface */
