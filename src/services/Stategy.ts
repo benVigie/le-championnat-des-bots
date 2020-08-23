@@ -1,3 +1,4 @@
+import * as chalk from "chalk";
 import FootballApi from "./FootballAPI";
 import { IFixture, IStrategyResult, IPrediction, IBookmaker, BetTypes, MatchWinner, IBetValueNumber, EndGameType, NO_PREDICTION_AVAILABLE } from "./types";
 import ScoreCalculator from "./ScoreCalculator";
@@ -20,12 +21,15 @@ export default class Strategy {
   /** Sort the given fixture array by bookmakers odds */
   sortGamesByOdds(fixtures: IFixture[]): IFixture[] {
     for (const game of fixtures) {
-      game.strategy = this.compareOddsAndPronostics(game.pronostics, game.odds);
-      this._scoreCalculator.getPotentialTeamScores(game);
+      if (game.odds) {
+        game.strategy = this.compareOddsAndPronostics(game.pronostics, game.odds);
+        this._scoreCalculator.getPotentialTeamScores(game);
+      }
+      else console.error(chalk`{bgRed No odds for ${game.homeTeam.team_name} - ${game.awayTeam.team_name}. The strategy cannot be computed.}`);
     }
 
     // Sort teams by odds gap
-    return fixtures.sort((a, b) => b.strategy.oddGap - a.strategy.oddGap);
+    return fixtures.sort((a, b) => b.strategy?.oddGap - a.strategy?.oddGap);
   }
 
   /** Extract data from odds and pronostics and return a IStrategyResult */

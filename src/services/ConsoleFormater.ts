@@ -53,19 +53,23 @@ export default class ConsoleFormater {
     let position = 1;
     for (const fixture of fixtures) {
 
-      if (fixture.strategy.oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) console.log(chalk`{bold.green ${position++}) ✔️ ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}`);
-      else if (fixture.strategy.oddGap < ODD_DIFFERENCE_TOO_SMALL) console.log(chalk`{yellow ${position++}) ⚡️} {red ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}`);
-      else console.log(chalk`{green ${position++}) ♣️ ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}`);
+      if (fixture.strategy) {
+        // tslint:disable-next-line: max-line-length
+        if (fixture.strategy.oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) console.log(chalk`{bold.green ${position++}) ✔️ ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}`);
+        else if (fixture.strategy.oddGap < ODD_DIFFERENCE_TOO_SMALL) console.log(chalk`{yellow ${position++}) ⚡️} {red ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}`);
+        else console.log(chalk`{green ${position++}) ♣️ ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}`);
 
-      const bet = api.getBet(fixture.odds.bets, BetTypes.MatchWinner)
+        const bet = api.getBet(fixture.odds.bets, BetTypes.MatchWinner)
 
-      console.log(chalk`\n{bold.blue ${fixture.odds.bookmaker_name} odds:}`);
-      // tslint:disable-next-line: max-line-length
-      console.log(chalk`{green Result: {bold ${fixture.strategy.oddMatchWinner}}\t${bet[0].value}: ${bet[0].odd} - ${bet[1].value}: ${bet[1].odd} - ${bet[2].value}: ${bet[2].odd}}\t{cyan Gap:} {cyan.bold ${fixture.strategy.oddGap.toFixed(2)}}`);
-      console.log(chalk`{gray Expected scores: {bold ${fixture.strategy.expectedScores.join("  /  ")}}}`);
-      console.log(chalk`Confidence: {magenta.bold ${fixture.strategy.confidence}%}`);
-      console.log(chalk`${fixture.homeTeam.team_name} potential game scores: {magenta.bold ${fixture.homeTeam.potentialScore.min} / ${fixture.homeTeam.potentialScore.max}}`);
-      console.log(chalk`${fixture.awayTeam.team_name} potential game scores: {magenta.bold ${fixture.awayTeam.potentialScore.min} / ${fixture.awayTeam.potentialScore.max}}`);
+        console.log(chalk`\n{bold.blue ${fixture.odds.bookmaker_name} odds:}`);
+        // tslint:disable-next-line: max-line-length
+        console.log(chalk`{green Result: {bold ${fixture.strategy.oddMatchWinner}}\t${bet[0].value}: ${bet[0].odd} - ${bet[1].value}: ${bet[1].odd} - ${bet[2].value}: ${bet[2].odd}}\t{cyan Gap:} {cyan.bold ${fixture.strategy.oddGap.toFixed(2)}}`);
+        console.log(chalk`{gray Expected scores: {bold ${fixture.strategy.expectedScores.join("  /  ")}}}`);
+        console.log(chalk`Confidence: {magenta.bold ${fixture.strategy.confidence}%}`);
+        console.log(chalk`${fixture.homeTeam.team_name} potential game scores: {magenta.bold ${fixture.homeTeam.potentialScore.min} / ${fixture.homeTeam.potentialScore.max}}`);
+        console.log(chalk`${fixture.awayTeam.team_name} potential game scores: {magenta.bold ${fixture.awayTeam.potentialScore.min} / ${fixture.awayTeam.potentialScore.max}}`);
+      }
+      else console.log(chalk`${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name} {yellow.bold (unsorted - no strategy)}`);
 
       // Display pronostics if we have them
       if (fixture.pronostics) {
@@ -78,7 +82,7 @@ export default class ConsoleFormater {
         this.displayPronostic("Forme", [fixture.pronostics.comparison.forme.home, fixture.pronostics.comparison.forme.away]);
         this.displayPronostic("Attaque", [fixture.pronostics.comparison.att.home, fixture.pronostics.comparison.att.away]);
         this.displayPronostic("Defense", [fixture.pronostics.comparison.def.home, fixture.pronostics.comparison.def.away]);
-        if (fixture.strategy.oddGap >= ODD_DIFFERENCE_TOO_SMALL) {
+        if (fixture.strategy?.oddGap >= ODD_DIFFERENCE_TOO_SMALL) {
           this.displayPronostic("H2H", [fixture.pronostics.comparison.h2h.home, fixture.pronostics.comparison.h2h.away]);
           this.displayPronostic("Buts H2H", [fixture.pronostics.comparison.goals_h2h.home, fixture.pronostics.comparison.goals_h2h.away]);
         }
