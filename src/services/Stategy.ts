@@ -1,5 +1,6 @@
 import FootballApi from "./FootballAPI";
 import { IFixture, IStrategyResult, IPrediction, IBookmaker, BetTypes, MatchWinner, IBetValueNumber, EndGameType, NO_PREDICTION_AVAILABLE } from "./types";
+import ScoreCalculator from "./ScoreCalculator";
 
 /** This const define the trust level on odds difference. If the difference between the 2 closer odds are more than this trigger, we think it's good enough to have a winner */
 export const ODD_DIFFERENCE_TRUST_LEVEL = 1.4;
@@ -9,15 +10,18 @@ export const ODD_DIFFERENCE_TOO_SMALL = 1;
 /** Regroup all strategy methods: sort, players, etc... */
 export default class Strategy {
   private _api: FootballApi;
+  private _scoreCalculator: ScoreCalculator;
 
   constructor(api: FootballApi) {
     this._api = api;
+    this._scoreCalculator = new ScoreCalculator();
   }
 
   /** Sort the given fixture array by bookmakers odds */
   sortGamesByOdds(fixtures: IFixture[]): IFixture[] {
     for (const game of fixtures) {
       game.strategy = this.compareOddsAndPronostics(game.pronostics, game.odds);
+      this._scoreCalculator.getPotentialTeamScores(game);
     }
 
     // Sort teams by odds gap

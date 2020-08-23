@@ -64,6 +64,8 @@ export default class ConsoleFormater {
       console.log(chalk`{green Result: {bold ${fixture.strategy.oddMatchWinner}}\t${bet[0].value}: ${bet[0].odd} - ${bet[1].value}: ${bet[1].odd} - ${bet[2].value}: ${bet[2].odd}}\t{cyan Gap:} {cyan.bold ${fixture.strategy.oddGap.toFixed(2)}}`);
       console.log(chalk`{gray Expected scores: {bold ${fixture.strategy.expectedScores.join("  /  ")}}}`);
       console.log(chalk`Confidence: {magenta.bold ${fixture.strategy.confidence}%}`);
+      console.log(chalk`${fixture.homeTeam.team_name} potential game scores: {magenta.bold ${fixture.homeTeam.potentialScore.min} / ${fixture.homeTeam.potentialScore.max}}`);
+      console.log(chalk`${fixture.awayTeam.team_name} potential game scores: {magenta.bold ${fixture.awayTeam.potentialScore.min} / ${fixture.awayTeam.potentialScore.max}}`);
 
       // Display pronostics if we have them
       if (fixture.pronostics) {
