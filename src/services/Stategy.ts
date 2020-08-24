@@ -36,6 +36,7 @@ export default class Strategy {
   private compareOddsAndPronostics(predictions: IPrediction, odds: IBookmaker): IStrategyResult {
     // Retrieve bet match winner
     const bet = this._api.getBet(odds.bets, BetTypes.MatchWinner);
+    if (bet.length === 0) return null;
 
     // Extract odds and sort from the smaller (aka most possible situation) to the greater (less possible situation)
     let compareOdds = bet.map(betOdd => {

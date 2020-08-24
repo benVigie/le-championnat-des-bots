@@ -36,6 +36,8 @@ export default class ScoreCalculator {
 
   /** Get min/max score this team should win */
   getPotentialTeamScores(game: IFixture): void {
+    if (!game.strategy || !game.strategy.expectedScores) return null;
+
     const homeScore: IPotentialScore = { min: 0, max: 0 };
     const awayScore: IPotentialScore = { min: 0, max: 0 };
 
