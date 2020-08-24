@@ -39,4 +39,13 @@ Response: ${JSON.stringify(error.response.data)}}
     }
     return false;
   }
+
+  /** Write a message in console, but can reset the line */
+  static writeConsole(message: string, reset = false): void {
+    if (reset) {
+      process.stdout.clearLine(0);
+      process.stdout.cursorTo(0);
+    }
+    process.stdout.write(message);
+  }
 }

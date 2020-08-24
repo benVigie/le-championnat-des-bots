@@ -180,7 +180,7 @@ export interface IBookmakerBet {
 export interface IBookmaker {
   bookmaker_id: number;
   bookmaker_name: string;
-  bets: IBookmakerBet[];
+  bets?: IBookmakerBet[];
 }
 
 interface IOdds {
