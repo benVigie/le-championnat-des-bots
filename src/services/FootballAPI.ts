@@ -11,8 +11,8 @@ const FOOTBALL_API_URL = "https://v2.api-football.com";
 const LIGUE_1_ID = 2664;
 /** Bokmakers list */
 const BOOKMAKERS: IBookmaker[] = [
-  { bookmaker_id: 6, bookmaker_name: "BWIN" },
   { bookmaker_id: 1, bookmaker_name: "10bet" },
+  { bookmaker_id: 6, bookmaker_name: "BWIN" },
   { bookmaker_id: 11, bookmaker_name: "1xbet" },
 ];
 
@@ -80,6 +80,7 @@ export default class FootballApi {
       const pronosticsResponse = await this.performsFootballApiCall<IApiPredictionsResponse>(`/predictions/${games[i].fixture_id}`);
       this.displayAction(`Retrieving ${games[i].homeTeam.team_name} - ${games[i].awayTeam.team_name} predictions`, true, !!pronosticsResponse.predictions);
       if (pronosticsResponse.predictions[0]) {
+        delete pronosticsResponse.predictions[0].h2h;
         games[i].pronostics = pronosticsResponse.predictions[0];
       }
 
