@@ -167,7 +167,8 @@ export interface IPrediction {
     fish_law: ITeamsComparaison;
     h2h: ITeamsComparaison;
     goals_h2h: ITeamsComparaison;
-  }
+  };
+  h2h: any
 }
 
 export interface IBookmakerBet {
