@@ -29,7 +29,11 @@ export default class Strategy {
     }
 
     // Sort teams by odds gap
-    return fixtures.sort((a, b) => b.strategy?.oddGap - a.strategy?.oddGap);
+    return fixtures.sort((a, b) => {
+      if (!a.strategy) return 1;
+      if (!b.strategy) return -1;
+      return b.strategy?.oddGap - a.strategy?.oddGap
+    });
   }
 
   /** Extract data from odds and pronostics and return a IStrategyResult */
@@ -57,14 +61,12 @@ export default class Strategy {
   /** Retrieve the match winner according to odds comparaison */
   private getMatchWinner(odds: IBetValueNumber[], oddGap: number): MatchWinner {
     if (odds[0].value === EndGameType.Home) {
-      if (odds[1].value === EndGameType.Away) return MatchWinner.Home;
-      if (odds[1].value === EndGameType.Draw && oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) return MatchWinner.Home;
-      if (odds[1].value === EndGameType.Draw && oddGap < ODD_DIFFERENCE_TRUST_LEVEL) return MatchWinner.HomeOrDraw;
+      if (oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) return MatchWinner.Home;
+      return MatchWinner.HomeOrDraw
     }
     if (odds[0].value === EndGameType.Away) {
-      if (odds[1].value === EndGameType.Home) return MatchWinner.Away;
-      if (odds[1].value === EndGameType.Draw && oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) return MatchWinner.Away;
-      if (odds[1].value === EndGameType.Draw && oddGap < ODD_DIFFERENCE_TRUST_LEVEL) return MatchWinner.AwayOrDraw;
+      if (oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) return MatchWinner.Away;
+      return MatchWinner.AwayOrDraw;
     }
     return MatchWinner.Draw;
   }
