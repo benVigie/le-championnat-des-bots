@@ -255,3 +255,94 @@ export interface IApiPredictionsResponse extends IApiResponse {
 export interface IApiBookmakerOddsResponse extends IApiResponse {
   odds: IOdds[];
 }
+
+/** Le championnat des etoiles info data retrieved on login */
+export interface ILcdeGroup {
+  id: string,
+  libelle: string,
+  idjg: string,
+}
+
+export interface ILcdeInfos {
+  id: string;
+  mail: string;
+  manager: string;
+  presentation: string;
+  fuseau: string;
+  image: string;
+  idl: string;
+  idg: string;
+  idjg: string;
+  cle: string;
+  position: number;
+  total: number;
+  nb_equipes: number;
+  groupes: ILcdeGroup[],
+  budgets: {
+    affiche: number,
+    reel: number,
+    decouvert: string
+  },
+  credits: number,
+  token: string
+}
+
+
+
+export interface ILcdeGamer {
+  id_joueurgroupe: string;
+  id: string;
+  nom: string;
+}
+
+export interface ILcdePlayer {
+  id: number;
+  idws: string;
+  nom: string;
+  nomcomplet: string;
+  valeur: string;
+  id_club: number;
+  club: string;
+  num: number;
+  place: string;
+  numplace: number;
+  id_position: number;
+  imageclub: string;
+  mappartient: boolean;
+  occupe: boolean;
+  proprietaire: ILcdeGamer;
+  blocage_action: boolean;
+  pontdor_encours: boolean;
+  surledepart: boolean;
+  bloque: boolean;
+  date_block: string;
+  offres_encours: boolean;
+  offres_encours_nb: number;
+  offres_encours_parmoi: boolean;
+  achatsecret: boolean;
+  achatreduc: boolean;
+  enchereanticipee_possible: boolean;
+  enchereanticipee_encours: boolean;
+  enchereanticipee_encours_datepassage: string;
+  enchereanticipee_encours_parmoi: boolean;
+  position: string;
+  dateachat: string;
+  tituremp: string;
+  prixachat: number;
+  plusvalue: number;
+  propage: boolean;
+  off: boolean;
+  pointssupp: number;
+  capitaine: boolean;
+  supersub: number;
+}
+// A tester les valeurs:
+// position
+// tituremp
+// off
+// place
+// occupe
+
+export interface ILcdePlayersApiResponse {
+  joueurs: ILcdePlayer[]
+}
