@@ -27,6 +27,8 @@ interface IYargsArgs {
   $0: string;
   env: string;
   token: string;
+  email: string;
+  password: string;
 };
 
 /** Bot entry point. Parse arguments, load config and start the bot */
@@ -43,7 +45,7 @@ export class Main {
       const appConfig = config[Main.getAppMode()];
 
       // Load and start scout bot !
-      const scoutBot = new ScoutBot(Main.getAppMode(), appConfig, Main.appArgs.token);
+      const scoutBot = new ScoutBot(Main.getAppMode(), appConfig, Main.appArgs.token, Main.appArgs.email, Main.appArgs.password);
       scoutBot.startScouting();
     }
     catch (error) {
@@ -70,7 +72,9 @@ export class Main {
 // Parse bot command arguments with yargs
 Main.appArgs = yargs.options({
   env: { type: 'string', alias: 'e', choices: [AppMode.Dev, AppMode.Production], description: "The bot app mode. Can be either 'dev' or 'prod'. If not specified, the env is the node's one." },
-  token: { type: 'string', alias: 't', demandOption: "You should provide you Football API token to perform requests to the API.\n", description: "Football API token" },
+  token: { type: 'string', alias: 't', demandOption: "You should provide your Football API token to perform API requests.\n", description: "Football API token" },
+  email: { type: 'string', alias: 'm', demandOption: "You should provide your LCDE email to perform API requests.\n", description: "Le Championat Des Etoiles user email" },
+  password: { type: 'string', alias: 'p', demandOption: "You should provide your LCDE password to perform API requests.\n", description: "Le Championat Des Etoiles user password" }
 }).argv;
 
 // Do not start the app if we're testing with mocha !

@@ -36,8 +36,10 @@ export default class ScoreCalculator {
 
   /** Get min/max score this team should win */
   getPotentialTeamScores(game: IFixture): void {
-    const homeScore: IPotentialScore = { min: 0, max: 0 };
-    const awayScore: IPotentialScore = { min: 0, max: 0 };
+    if (!game.strategy || !game.strategy.expectedScores) return null;
+
+    const homeScore: IPotentialScore = { min: 0, max: 0, average: 0 };
+    const awayScore: IPotentialScore = { min: 0, max: 0, average: 0 };
 
     const goals = game.strategy.expectedScores[0].split(":");
     const homeGoals = parseInt(goals[0], 10);
@@ -75,7 +77,9 @@ export default class ScoreCalculator {
         awayScore.max += RULES.team.awayDraw;
     }
 
-    // Attach scores
+    // Computes average and attach scores
+    homeScore.average = (homeScore.min + homeScore.max) / 2;
+    awayScore.average = (awayScore.min + awayScore.max) / 2;
     game.homeTeam.potentialScore = homeScore;
     game.awayTeam.potentialScore = awayScore;
   }

@@ -6,19 +6,22 @@ import * as chalk from "chalk";
 import { DateTime } from "luxon";
 import Strategy from "./services/Stategy";
 import ConsoleFormater from "./services/ConsoleFormater";
+import LcdeApi from "./services/LcdeAPI";
 
 /** ScoutBot is the app orchestrator */
 export default class ScoutBot {
   private static _config: IConfiguration;
   private static _mode: AppMode;
   private _api: FootballApi;
+  private _lcdeApi: LcdeApi;
   private _nextGames: IFixture[];
   private _strategy: Strategy;
 
-  constructor(mode: AppMode, config: IConfiguration, token: string) {
+  constructor(mode: AppMode, config: IConfiguration, token: string, email: string, password: string) {
     ScoutBot._mode = mode;
     ScoutBot._config = config;
     this._api = new FootballApi(token);
+    this._lcdeApi = new LcdeApi(email, password);
     this._strategy = new Strategy(this._api);
   }
 
@@ -47,9 +50,13 @@ export default class ScoutBot {
       // Display next games
       ConsoleFormater.displayNextGames(this._nextGames, this._api);
 
-      // Display strategy
+      // Display strategy sort
       const strategySorted = this._strategy.sortGamesByOdds(this._nextGames);
       ConsoleFormater.displayStrategy(strategySorted, this._api);
+
+      // And now sort by points
+      const teams = this._strategy.sortTeamsByPoints(strategySorted);
+      ConsoleFormater.displayTeamsByScore(teams);
     }
     catch (error) {
       if (!Tools.dumpAxiosError(error)) {

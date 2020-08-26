@@ -167,7 +167,8 @@ export interface IPrediction {
     fish_law: ITeamsComparaison;
     h2h: ITeamsComparaison;
     goals_h2h: ITeamsComparaison;
-  }
+  };
+  h2h: any
 }
 
 export interface IBookmakerBet {
@@ -180,7 +181,7 @@ export interface IBookmakerBet {
 export interface IBookmaker {
   bookmaker_id: number;
   bookmaker_name: string;
-  bets: IBookmakerBet[];
+  bets?: IBookmakerBet[];
 }
 
 interface IOdds {
@@ -209,8 +210,14 @@ export interface IStrategyResult {
 
 /** Min and max potential scores */
 export interface IPotentialScore {
-  min: number,
-  max: number,
+  min: number;
+  max: number;
+  average: number;
+}
+
+/** When using teams in startegy, attach game to it */
+export interface ITeamAndGame extends ITeam {
+  game: IFixture;
 }
 
 /** Api error response interface */
@@ -247,4 +254,95 @@ export interface IApiPredictionsResponse extends IApiResponse {
 /** Api bookmaker odds response interface */
 export interface IApiBookmakerOddsResponse extends IApiResponse {
   odds: IOdds[];
+}
+
+/** Le championnat des etoiles info data retrieved on login */
+export interface ILcdeGroup {
+  id: string,
+  libelle: string,
+  idjg: string,
+}
+
+export interface ILcdeInfos {
+  id: string;
+  mail: string;
+  manager: string;
+  presentation: string;
+  fuseau: string;
+  image: string;
+  idl: string;
+  idg: string;
+  idjg: string;
+  cle: string;
+  position: number;
+  total: number;
+  nb_equipes: number;
+  groupes: ILcdeGroup[],
+  budgets: {
+    affiche: number,
+    reel: number,
+    decouvert: string
+  },
+  credits: number,
+  token: string
+}
+
+
+
+export interface ILcdeGamer {
+  id_joueurgroupe: string;
+  id: string;
+  nom: string;
+}
+
+export interface ILcdePlayer {
+  id: number;
+  idws: string;
+  nom: string;
+  nomcomplet: string;
+  valeur: string;
+  id_club: number;
+  club: string;
+  num: number;
+  place: string;
+  numplace: number;
+  id_position: number;
+  imageclub: string;
+  mappartient: boolean;
+  occupe: boolean;
+  proprietaire: ILcdeGamer;
+  blocage_action: boolean;
+  pontdor_encours: boolean;
+  surledepart: boolean;
+  bloque: boolean;
+  date_block: string;
+  offres_encours: boolean;
+  offres_encours_nb: number;
+  offres_encours_parmoi: boolean;
+  achatsecret: boolean;
+  achatreduc: boolean;
+  enchereanticipee_possible: boolean;
+  enchereanticipee_encours: boolean;
+  enchereanticipee_encours_datepassage: string;
+  enchereanticipee_encours_parmoi: boolean;
+  position: string;
+  dateachat: string;
+  tituremp: string;
+  prixachat: number;
+  plusvalue: number;
+  propage: boolean;
+  off: boolean;
+  pointssupp: number;
+  capitaine: boolean;
+  supersub: number;
+}
+// A tester les valeurs:
+// position
+// tituremp
+// off
+// place
+// occupe
+
+export interface ILcdePlayersApiResponse {
+  joueurs: ILcdePlayer[]
 }

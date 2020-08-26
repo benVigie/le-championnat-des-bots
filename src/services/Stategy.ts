@@ -1,5 +1,6 @@
+import * as chalk from "chalk";
 import FootballApi from "./FootballAPI";
-import { IFixture, IStrategyResult, IPrediction, IBookmaker, BetTypes, MatchWinner, IBetValueNumber, EndGameType, NO_PREDICTION_AVAILABLE } from "./types";
+import { IFixture, IStrategyResult, IPrediction, IBookmaker, BetTypes, MatchWinner, IBetValueNumber, EndGameType, NO_PREDICTION_AVAILABLE, ITeam, ITeamAndGame } from "./types";
 import ScoreCalculator from "./ScoreCalculator";
 
 /** This const define the trust level on odds difference. If the difference between the 2 closer odds are more than this trigger, we think it's good enough to have a winner */
@@ -20,18 +21,44 @@ export default class Strategy {
   /** Sort the given fixture array by bookmakers odds */
   sortGamesByOdds(fixtures: IFixture[]): IFixture[] {
     for (const game of fixtures) {
-      game.strategy = this.compareOddsAndPronostics(game.pronostics, game.odds);
-      this._scoreCalculator.getPotentialTeamScores(game);
+      if (game.odds) {
+        game.strategy = this.compareOddsAndPronostics(game.pronostics, game.odds);
+        this._scoreCalculator.getPotentialTeamScores(game);
+      }
+      else console.error(chalk`{bgRed No odds for ${game.homeTeam.team_name} - ${game.awayTeam.team_name}. The strategy cannot be computed.}`);
     }
 
     // Sort teams by odds gap
-    return fixtures.sort((a, b) => b.strategy.oddGap - a.strategy.oddGap);
+    return fixtures.sort((a, b) => {
+      if (!a.strategy) return 1;
+      if (!b.strategy) return -1;
+      return b.strategy?.oddGap - a.strategy?.oddGap
+    });
+  }
+
+  /** Sort the given fixture array by expected team scores */
+  sortTeamsByPoints(fixtures: IFixture[]): ITeamAndGame[] {
+    const teams = this.getTeamsAndGame(fixtures);
+
+    // Sort teams by odds gap
+    return teams.sort((teamA, teamB) => {
+      if (!teamA.potentialScore) return 1;
+      if (!teamB.potentialScore) return -1;
+
+      // Compares points average. If they are the same, compares odds gap
+      if (teamA.potentialScore.average === teamB.potentialScore.average) {
+        return teamB.game.strategy.oddGap - teamA.game.strategy.oddGap;
+      }
+
+      return teamB.potentialScore.average - teamA.potentialScore.average;
+    });
   }
 
   /** Extract data from odds and pronostics and return a IStrategyResult */
   private compareOddsAndPronostics(predictions: IPrediction, odds: IBookmaker): IStrategyResult {
     // Retrieve bet match winner
     const bet = this._api.getBet(odds.bets, BetTypes.MatchWinner);
+    if (bet.length === 0) return null;
 
     // Extract odds and sort from the smaller (aka most possible situation) to the greater (less possible situation)
     let compareOdds = bet.map(betOdd => {
@@ -52,14 +79,12 @@ export default class Strategy {
   /** Retrieve the match winner according to odds comparaison */
   private getMatchWinner(odds: IBetValueNumber[], oddGap: number): MatchWinner {
     if (odds[0].value === EndGameType.Home) {
-      if (odds[1].value === EndGameType.Away) return MatchWinner.Home;
-      if (odds[1].value === EndGameType.Draw && oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) return MatchWinner.Home;
-      if (odds[1].value === EndGameType.Draw && oddGap < ODD_DIFFERENCE_TRUST_LEVEL) return MatchWinner.HomeOrDraw;
+      if (oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) return MatchWinner.Home;
+      return MatchWinner.HomeOrDraw
     }
     if (odds[0].value === EndGameType.Away) {
-      if (odds[1].value === EndGameType.Home) return MatchWinner.Away;
-      if (odds[1].value === EndGameType.Draw && oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) return MatchWinner.Away;
-      if (odds[1].value === EndGameType.Draw && oddGap < ODD_DIFFERENCE_TRUST_LEVEL) return MatchWinner.AwayOrDraw;
+      if (oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) return MatchWinner.Away;
+      return MatchWinner.AwayOrDraw;
     }
     return MatchWinner.Draw;
   }
@@ -90,5 +115,16 @@ export default class Strategy {
     bet = bet.sort((a, b) => { return parseFloat(a.odd) - parseFloat(b.odd) });
     if (bet.length) return [`${bet[0].value}: ${bet[0].odd}`, `${bet[1].value}: ${bet[1].odd}`, `${bet[2].value}: ${bet[2].odd}`, `${bet[3].value}: ${bet[3].odd}`];
     return [];
+  }
+
+  /** Retrieve teams list from fixture */
+  private getTeamsAndGame(games: IFixture[]): ITeamAndGame[] {
+    const teams: ITeamAndGame[] = [];
+
+    for (const game of games) {
+      teams.push({ ...game.homeTeam, game });
+      teams.push({ ...game.awayTeam, game });
+    }
+    return teams;
   }
 }
