@@ -210,8 +210,14 @@ export interface IStrategyResult {
 
 /** Min and max potential scores */
 export interface IPotentialScore {
-  min: number,
-  max: number,
+  min: number;
+  max: number;
+  average: number;
+}
+
+/** When using teams in startegy, attach game to it */
+export interface ITeamAndGame extends ITeam {
+  game: IFixture;
 }
 
 /** Api error response interface */

@@ -1,6 +1,6 @@
 import * as chalk from "chalk";
 import { DateTime } from "luxon";
-import { IFixture, BetTypes, NO_PREDICTION_AVAILABLE } from "./types";
+import { IFixture, BetTypes, NO_PREDICTION_AVAILABLE, ITeam, ITeamAndGame } from "./types";
 import FootballApi from "./FootballAPI";
 import { ODD_DIFFERENCE_TRUST_LEVEL, ODD_DIFFERENCE_TOO_SMALL } from "./Stategy";
 
@@ -90,6 +90,25 @@ export default class ConsoleFormater {
 
       console.log(chalk`{gray \n---\n}`);
     }
+  }
+
+  /** Display next games with all infos in console */
+  static displayTeamsByScore(teams: ITeamAndGame[]): void {
+    let position = 1;
+
+    console.log(chalk`{bold.gray Teams sorted by scores\n}`);
+
+    for (const team of teams) {
+      if (team.potentialScore) {
+        let line = "";
+        if (position <= 6) line = chalk`{bold.green ${position++}) ${team.team_name}}`;
+        else if (team.potentialScore.average < 5) line = chalk`{red ${position++}) ${team.team_name}}`;
+        else line = chalk`{green ${position++}) ${team.team_name}}`;
+        console.log(chalk`${line}\t{yellow (${team.potentialScore.min}/${team.potentialScore.max})  {bold ${team.potentialScore.average}}}   {gray ${team.game.strategy.oddGap.toFixed(2)}}`);
+      }
+      else console.log(chalk`{gray ?) ${team.team_name}}`);
+    }
+    console.log(chalk`{gray \n---\n}`);
   }
 
   /** Helper for pronostic display */

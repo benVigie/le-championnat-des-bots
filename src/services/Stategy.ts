@@ -1,6 +1,6 @@
 import * as chalk from "chalk";
 import FootballApi from "./FootballAPI";
-import { IFixture, IStrategyResult, IPrediction, IBookmaker, BetTypes, MatchWinner, IBetValueNumber, EndGameType, NO_PREDICTION_AVAILABLE } from "./types";
+import { IFixture, IStrategyResult, IPrediction, IBookmaker, BetTypes, MatchWinner, IBetValueNumber, EndGameType, NO_PREDICTION_AVAILABLE, ITeam, ITeamAndGame } from "./types";
 import ScoreCalculator from "./ScoreCalculator";
 
 /** This const define the trust level on odds difference. If the difference between the 2 closer odds are more than this trigger, we think it's good enough to have a winner */
@@ -33,6 +33,24 @@ export default class Strategy {
       if (!a.strategy) return 1;
       if (!b.strategy) return -1;
       return b.strategy?.oddGap - a.strategy?.oddGap
+    });
+  }
+
+  /** Sort the given fixture array by expected team scores */
+  sortTeamsByPoints(fixtures: IFixture[]): ITeamAndGame[] {
+    const teams = this.getTeamsAndGame(fixtures);
+
+    // Sort teams by odds gap
+    return teams.sort((teamA, teamB) => {
+      if (!teamA.potentialScore) return 1;
+      if (!teamB.potentialScore) return -1;
+
+      // Compares points average. If they are the same, compares odds gap
+      if (teamA.potentialScore.average === teamB.potentialScore.average) {
+        return teamB.game.strategy.oddGap - teamA.game.strategy.oddGap;
+      }
+
+      return teamB.potentialScore.average - teamA.potentialScore.average;
     });
   }
 
@@ -97,5 +115,16 @@ export default class Strategy {
     bet = bet.sort((a, b) => { return parseFloat(a.odd) - parseFloat(b.odd) });
     if (bet.length) return [`${bet[0].value}: ${bet[0].odd}`, `${bet[1].value}: ${bet[1].odd}`, `${bet[2].value}: ${bet[2].odd}`, `${bet[3].value}: ${bet[3].odd}`];
     return [];
+  }
+
+  /** Retrieve teams list from fixture */
+  private getTeamsAndGame(games: IFixture[]): ITeamAndGame[] {
+    const teams: ITeamAndGame[] = [];
+
+    for (const game of games) {
+      teams.push({ ...game.homeTeam, game });
+      teams.push({ ...game.awayTeam, game });
+    }
+    return teams;
   }
 }
