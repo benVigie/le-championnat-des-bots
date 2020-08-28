@@ -13,11 +13,13 @@
   "dependencies": {
     "@types/luxon": "^1.24.1",
     "@types/node": "^13.9.5",
+    "@types/prompts": "^2.0.8",
     "@types/request-promise-native": "^1.0.17",
     "@types/yargs": "^15.0.4",
     "axios": "^0.19.2",
     "chalk": "^3.0.0",
     "luxon": "^1.24.1",
+    "prompts": "^2.3.2",
     "typescript": "^3.8.3",
     "yargs": "^15.3.1"
   }
