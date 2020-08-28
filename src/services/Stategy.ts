@@ -1,4 +1,5 @@
 import * as chalk from "chalk";
+import { prompts } from "prompts";
 import FootballApi from "./FootballAPI";
 import { IFixture, IStrategyResult, IPrediction, IBookmaker, BetTypes, MatchWinner, IBetValueNumber, EndGameType, NO_PREDICTION_AVAILABLE, ITeam, ITeamAndGame } from "./types";
 import ScoreCalculator from "./ScoreCalculator";
@@ -19,8 +20,11 @@ export default class Strategy {
   }
 
   /** Sort the given fixture array by bookmakers odds */
-  sortGamesByOdds(fixtures: IFixture[]): IFixture[] {
-    for (const game of fixtures) {
+  async sortGamesByOdds(fixtures: IFixture[], interactive: boolean): Promise<IFixture[]> {
+    for (let game of fixtures) {
+      if (!game.odds && interactive) {
+        game = await this.askForUserOdds(game);
+      }
       if (game.odds) {
         game.strategy = this.compareOddsAndPronostics(game.pronostics, game.odds);
         this._scoreCalculator.getPotentialTeamScores(game);
@@ -127,4 +131,54 @@ export default class Strategy {
     }
     return teams;
   }
+
+  /** If we can't retrieve pronostics for a game, ask the user if he wants these theams in the evaluation */
+  private async askForUserOdds(fixture: IFixture): Promise<IFixture> {
+    // Ask if the user wants to evaluate the game
+    const evaluate = await prompts.toggle({
+      type: 'toggle',
+      name: 'value',
+      message: `${fixture.homeTeam.team_name} - ${fixture.awayTeam.team_name} has no bookmaker odds. Do you want to evaluate them manually ?`,
+      initial: true,
+      active: 'yes',
+      inactive: 'no'
+    }) as unknown as boolean;
+
+    if (evaluate) {
+      const userOdds = await prompts.select({
+        type: 'select',
+        name: 'value',
+        message: "So, what's your guess ?",
+        choices: [
+          { title: `${fixture.homeTeam.team_name} win 100% sure !`, description: 'Will be evaluate as a home win 1-0', value: MatchWinner.Home },
+          { title: `${fixture.homeTeam.team_name} win, but it's a Ligue 1 game dude...`, description: 'Will be evaluate as a home win or draw', value: MatchWinner.HomeOrDraw },
+          { title: `${fixture.awayTeam.team_name} easy win, go boys !`, description: 'Will be evaluate as an away win 0-1', value: MatchWinner.Away },
+          { title: `${fixture.awayTeam.team_name} win, but I'm not so sure...`, description: 'Will be evaluate as an away win or draw', value: MatchWinner.AwayOrDraw },
+        ],
+        initial: 0
+      }) as unknown as string;
+
+      fixture.odds = { bookmaker_name: "User guess", bookmaker_id: 0, bets: [] };
+      switch (userOdds) {
+        case MatchWinner.Home:
+          fixture.odds.bets.push({ label_id: 1, label_name: BetTypes.MatchWinner, values: [{ value: "Home", odd: "0" }, { value: "Draw", odd: ODD_DIFFERENCE_TRUST_LEVEL.toString() }, { value: "Away", odd: "5" }] });
+          fixture.odds.bets.push({ label_id: 10, label_name: BetTypes.ExactScore, values: [{ value: "1:0", odd: "0" }, { value: "1:0", odd: "1" }, { value: "1:0", odd: "2" }, { value: "1:0", odd: "3" }] });
+          break;
+        case MatchWinner.HomeOrDraw:
+          fixture.odds.bets.push({ label_id: 1, label_name: BetTypes.MatchWinner, values: [{ value: "Home", odd: "0" }, { value: "Draw", odd: (ODD_DIFFERENCE_TOO_SMALL + 0.1).toString() }, { value: "Away", odd: "5" }] });
+          fixture.odds.bets.push({ label_id: 10, label_name: BetTypes.ExactScore, values: [{ value: "0:0", odd: "0" }, { value: "0:0", odd: "1" }, { value: "0:0", odd: "2" }, { value: "0:0", odd: "3" }] });
+          break;
+        case MatchWinner.Away:
+          fixture.odds.bets.push({ label_id: 1, label_name: BetTypes.MatchWinner, values: [{ value: "Away", odd: "0" }, { value: "Draw", odd: ODD_DIFFERENCE_TRUST_LEVEL.toString() }, { value: "Home", odd: "5" }] });
+          fixture.odds.bets.push({ label_id: 10, label_name: BetTypes.ExactScore, values: [{ value: "0:1", odd: "0" }, { value: "0:1", odd: "1" }, { value: "0:1", odd: "2" }, { value: "0:1", odd: "3" }] });
+          break;
+        case MatchWinner.AwayOrDraw:
+          fixture.odds.bets.push({ label_id: 1, label_name: BetTypes.MatchWinner, values: [{ value: "Away", odd: "0" }, { value: "Draw", odd: (ODD_DIFFERENCE_TOO_SMALL + 0.1).toString() }, { value: "Home", odd: "5" }] });
+          fixture.odds.bets.push({ label_id: 10, label_name: BetTypes.ExactScore, values: [{ value: "0:0", odd: "0" }, { value: "0:0", odd: "1" }, { value: "0:0", odd: "2" }, { value: "0:0", odd: "3" }] });
+          break;
+      }
+    }
+    return fixture;
+  }
+
 }
