@@ -32,6 +32,8 @@ Le bot va envoyer des requètes à [Football API](https://www.api-football.com/)
 $ npm run start -- -t [your Football API token] -m [your lcde email] -p [your lcde password]
 ```
 
+> ⚽️ A noter que parfois, il n'y a tout simplement pas de paris sur certain matchs (coucou Marseille-Brest). Dans ces cas la, le bot affichera un message disant qu'il n'a pas pu prendre en compte ce match dans sa strategie. Si vous etes joueurs, vous pouvez lancer le bot en mode interactif pour rentrer votre propre evaluation avec l'option `-i`
+
 #### Debug the app
 
 To attach a node debugger and run the chrome debugger, simply run
