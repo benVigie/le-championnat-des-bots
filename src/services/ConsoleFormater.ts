@@ -2,7 +2,7 @@ import * as chalk from "chalk";
 import { DateTime } from "luxon";
 import { IFixture, BetTypes, NO_PREDICTION_AVAILABLE, ITeam, ITeamAndGame } from "./types";
 import FootballApi from "./FootballAPI";
-import { ODD_DIFFERENCE_TRUST_LEVEL, ODD_DIFFERENCE_TOO_SMALL } from "./Stategy";
+import { ODD_DIFFERENCE_TRUST_LEVEL, ODD_DIFFERENCE_TOO_SMALL } from "../strategy/GameSorter";
 
 /** ConsoleFormater will handle console display for games ans strategies */
 export default class ConsoleFormater {

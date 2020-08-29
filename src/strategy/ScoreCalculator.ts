@@ -1,4 +1,4 @@
-import { IFixture, MatchWinner, IPotentialScore } from "./types";
+import { IFixture, MatchWinner, IPotentialScore } from "../services/types";
 
 /** Le championnat des etoiles scores rules */
 const RULES = {

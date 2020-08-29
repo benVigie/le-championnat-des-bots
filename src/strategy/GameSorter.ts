@@ -1,7 +1,7 @@
 import * as chalk from "chalk";
 import { prompts } from "prompts";
-import FootballApi from "./FootballAPI";
-import { IFixture, IStrategyResult, IPrediction, IBookmaker, BetTypes, MatchWinner, IBetValueNumber, EndGameType, NO_PREDICTION_AVAILABLE, ITeam, ITeamAndGame } from "./types";
+import FootballApi from "../services/FootballAPI";
+import { IFixture, IStrategyResult, IPrediction, IBookmaker, BetTypes, MatchWinner, IBetValueNumber, EndGameType, NO_PREDICTION_AVAILABLE, ITeam, ITeamAndGame } from "../services/types";
 import ScoreCalculator from "./ScoreCalculator";
 
 /** This const define the trust level on odds difference. If the difference between the 2 closer odds are more than this trigger, we think it's good enough to have a winner */
@@ -9,8 +9,8 @@ export const ODD_DIFFERENCE_TRUST_LEVEL = 1.4;
 /** Odds difference too small to risk a bet */
 export const ODD_DIFFERENCE_TOO_SMALL = 1;
 
-/** Regroup all strategy methods: sort, players, etc... */
-export default class Strategy {
+/** Regroup all sort strategies for games and teams */
+export default class GameSorter {
   private _api: FootballApi;
   private _scoreCalculator: ScoreCalculator;
 

@@ -1,10 +1,10 @@
 import { AppMode, IConfiguration, IYargsArgs } from "./Main";
 import FootballApi from "./services/FootballAPI";
 import Tools from "./services/Tools";
-import { IFixture, BetTypes } from "./services/types";
+import { IFixture } from "./services/types";
 import * as chalk from "chalk";
 import { DateTime } from "luxon";
-import Strategy from "./services/Stategy";
+import GameSorter from "./strategy/GameSorter";
 import ConsoleFormater from "./services/ConsoleFormater";
 import LcdeApi from "./services/LcdeAPI";
 
@@ -15,7 +15,7 @@ export default class ScoutBot {
   private _api: FootballApi;
   private _lcdeApi: LcdeApi;
   private _nextGames: IFixture[];
-  private _strategy: Strategy;
+  private _gameSorter: GameSorter;
   private _isInteractive: boolean;
 
   constructor(mode: AppMode, config: IConfiguration, args: IYargsArgs) {
@@ -23,7 +23,7 @@ export default class ScoutBot {
     ScoutBot._config = config;
     this._api = new FootballApi(args.token);
     this._lcdeApi = new LcdeApi(args.email, args.password);
-    this._strategy = new Strategy(this._api);
+    this._gameSorter = new GameSorter(this._api);
     this._isInteractive = args.interactive;
   }
 
@@ -50,11 +50,11 @@ export default class ScoutBot {
       }
 
       // Display strategy sort
-      const strategySorted = await this._strategy.sortGamesByOdds(this._nextGames, this._isInteractive);
+      const strategySorted = await this._gameSorter.sortGamesByOdds(this._nextGames, this._isInteractive);
       ConsoleFormater.displayStrategy(strategySorted, this._api);
 
       // And now sort by points
-      const teams = this._strategy.sortTeamsByPoints(strategySorted);
+      const teams = this._gameSorter.sortTeamsByPoints(strategySorted);
       ConsoleFormater.displayTeamsByScore(teams);
 
 
