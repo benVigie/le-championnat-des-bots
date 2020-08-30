@@ -117,9 +117,6 @@ export default class LcdeApi {
       }
     };
     const apiResponse = await this.performsLcdeApiCall<ILcdePlayersApiResponse>("/private/searchjoueurs?lg=fr", POST, data);
-    for (const player of apiResponse.joueurs) {
-      player.club = teamName
-    }
     return apiResponse.joueurs as unknown as T[];
   }
 

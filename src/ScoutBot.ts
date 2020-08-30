@@ -61,11 +61,13 @@ export default class ScoutBot {
       ConsoleFormater.displayTeamsByScore(teams);
 
       // Retrieve players list from the best teams
-      this._playerSorter.getBestPlayers(teams);
+      const playerList = await this._playerSorter.getBestPlayers(teams);
+      ConsoleFormater.displayBestKeepers(playerList);
     }
     catch (error) {
       if (!Tools.dumpAxiosError(error)) {
         console.error(chalk`{red Scout bot error: ${error.toString()}}`);
+        throw error;
       }
     }
   }

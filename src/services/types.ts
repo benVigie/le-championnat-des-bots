@@ -321,6 +321,7 @@ export interface ILcdePlayer {
   }
   teamAndGame?: ITeamAndGame;
   averagePoints?: number;
+  potentialScore?: IPotentialScore;
 }
 
 /** PLayer info and market data */

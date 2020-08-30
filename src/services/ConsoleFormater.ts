@@ -3,6 +3,7 @@ import { DateTime } from "luxon";
 import { IFixture, BetTypes, NO_PREDICTION_AVAILABLE, ITeam, ITeamAndGame } from "./types";
 import FootballApi from "./FootballAPI";
 import { ODD_DIFFERENCE_TRUST_LEVEL, ODD_DIFFERENCE_TOO_SMALL } from "../strategy/GameSorter";
+import { IPlayerList } from "../strategy/PlayerSorter";
 
 /** ConsoleFormater will handle console display for games ans strategies */
 export default class ConsoleFormater {
@@ -51,8 +52,9 @@ export default class ConsoleFormater {
   /** Display next games with all infos in console */
   static displayStrategy(fixtures: IFixture[], api: FootballApi): void {
     let position = 1;
-    for (const fixture of fixtures) {
 
+    console.log(chalk`{bgBlue \n${fixtures[0].round.toUpperCase()} STRATEGY RANKING\n}`);
+    for (const fixture of fixtures) {
       if (fixture.strategy) {
         // tslint:disable-next-line: max-line-length
         if (fixture.strategy.oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) console.log(chalk`{bold.green ${position++}) ✔️ ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}\t{gray ${fixture.fixture_id}}`);
@@ -107,6 +109,23 @@ export default class ConsoleFormater {
         console.log(chalk`${line}\t{yellow (${team.potentialScore.min}/${team.potentialScore.max})  {bold ${team.potentialScore.average}}}   {gray ${team.game.strategy.oddGap.toFixed(2)}}`);
       }
       else console.log(chalk`{gray ?) ${team.team_name}}`);
+    }
+    console.log(chalk`{gray \n---\n}`);
+  }
+
+  /** Display the best keepers from a given list of teams */
+  static displayBestKeepers(playerList: IPlayerList): void {
+    let position = 1;
+
+    console.log(chalk`{bold.gray Best keepers\n}`);
+
+    for (const keeper of playerList.keepers) {
+      let line = "";
+      if (position <= 2) line = chalk`{bold.green ${position++}) ${keeper.club} - ${keeper.nom}}`;
+      else line = chalk`{green ${position++}) ${keeper.club} - ${keeper.nom}}`;
+
+      line += chalk`\tExpected score: {yellow (${keeper.potentialScore.min}/${keeper.potentialScore.max}) {bold ${keeper.potentialScore.average}}}\tAverage score: {magenta ${keeper.averagePoints}}\tValue: ${keeper.valeur}`;
+      console.log(line);
     }
     console.log(chalk`{gray \n---\n}`);
   }

@@ -12,11 +12,9 @@ export const ODD_DIFFERENCE_TOO_SMALL = 1;
 /** Regroup all sort strategies for games and teams */
 export default class GameSorter {
   private _api: FootballApi;
-  private _scoreCalculator: ScoreCalculator;
 
   constructor(api: FootballApi) {
     this._api = api;
-    this._scoreCalculator = new ScoreCalculator();
   }
 
   /** Sort the given fixture array by bookmakers odds */
@@ -27,7 +25,7 @@ export default class GameSorter {
       }
       if (game.odds) {
         game.strategy = this.compareOddsAndPronostics(game.pronostics, game.odds);
-        this._scoreCalculator.getPotentialTeamScores(game);
+        ScoreCalculator.computePotentialTeamScores(game);
       }
       else console.error(chalk`{bgRed No odds for ${game.homeTeam.team_name} - ${game.awayTeam.team_name}. The strategy cannot be computed.}`);
     }

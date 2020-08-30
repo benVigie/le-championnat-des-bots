@@ -28,8 +28,13 @@ export default class PlayerSorter {
     this._playerList = { keepers: [], backs: [], midfields: [], forwards: [] };
   }
 
+  /** Retrieve the sorted player list */
+  get playerList(): IPlayerList {
+    return this._playerList;
+  }
+
   /** Sort the given fixture array by bookmakers odds */
-  async getBestPlayers(teams: ITeamAndGame[]): Promise<void> {
+  async getBestPlayers(teams: ITeamAndGame[]): Promise<IPlayerList> {
     if (!this._api.isLogged) await this._api.login();
     const round = await this._api.getCurrentRound();
 
@@ -39,12 +44,12 @@ export default class PlayerSorter {
     // Retrieve players from the first 8 teams
     for (let i = 0; i < maxTeam; i++) {
       // Retrieve player list
-      Tools.displayAction(`${i + 1}/${maxTeam} Retrieving ${teams[i].team_name} player list...`);
+      Tools.displayAction(`${i + 1}/${maxTeam} Retrieving ${teams[i].team_name} player list`);
       const players = await this._api.getPlayersFromTeam<ILcdePlayer>(teams[i].team_name, round.journee.id);
       Tools.displayAction(`${i + 1}/${maxTeam} Retrieving ${teams[i].team_name} player list`, true, true);
 
       // Retrieve team statistics
-      Tools.displayAction(`${i + 1}/${maxTeam} Retrieving ${teams[i].team_name} player stats...`);
+      Tools.displayAction(`${i + 1}/${maxTeam} Retrieving ${teams[i].team_name} player stats`);
       const teamStats = await this._api.getTeamPlayersStatistics(teams[i].team_name);
       Tools.displayAction(`${i + 1}/${maxTeam} Retrieving ${teams[i].team_name} player stats`, true, true);
 
@@ -54,13 +59,13 @@ export default class PlayerSorter {
       }
     }
 
-    // Sort the player list by value
-    this.sortPlayerListByValue();
+    // Limit the player list
+    this.limitPlayerList(maxTeam);
 
-    console.log("Best keepers");
-    for (let i = 0; i < this._playerList.keepers.length; i++) {
-      console.log(`${i + 1}) ${this._playerList.keepers[i].club} - ${this._playerList.keepers[i].nom} (Average: ${this._playerList.keepers[i].averagePoints}, value: ${this._playerList.keepers[i].valeur})`);
-    }
+    // Sort the player list
+    this.sortPlayerListByPotentialAverageScore();
+
+    return this._playerList;
   }
 
   /** Format player and add him in the right category according his position */
@@ -70,18 +75,32 @@ export default class PlayerSorter {
     player.teamAndGame = team;
     player.averagePoints = this.getPlayerAveragePoints(player, teamStats);
 
-    if (player.position === LcdePosition.Keeper) this._playerList.keepers.push(player);
+    if (player.position === LcdePosition.Keeper) {
+      ScoreCalculator.computePotentialKeeperScore(player)
+      this._playerList.keepers.push(player);
+    }
     if (player.position === LcdePosition.Back) this._playerList.backs.push(player);
     if (player.position === LcdePosition.Midfield) this._playerList.midfields.push(player);
     if (player.position === LcdePosition.Forward) this._playerList.forwards.push(player);
   }
 
-  /** Format player and add him in the right category according his position */
-  private sortPlayerListByValue(): void {
+  /** We don't need 75 keepers and 216 forwards. Limit the list of players according to some sorts */
+  private limitPlayerList(maxTeam: number): void {
+    // Limit keepers list by taking the first ones we better market value
     this._playerList.keepers.sort((a, b) => b.valeur - a.valeur);
+    this._playerList.keepers = this._playerList.keepers.slice(0, maxTeam);
+
     this._playerList.backs.sort((a, b) => b.valeur - a.valeur);
     this._playerList.midfields.sort((a, b) => b.valeur - a.valeur);
     this._playerList.forwards.sort((a, b) => b.valeur - a.valeur);
+  }
+
+  /** Sort players by their expected point */
+  private sortPlayerListByPotentialAverageScore(): void {
+    this._playerList.keepers.sort((a, b) => b.potentialScore.average - a.potentialScore.average);
+    // this._playerList.backs.sort((a, b) => b.valeur - a.valeur);
+    // this._playerList.midfields.sort((a, b) => b.valeur - a.valeur);
+    // this._playerList.forwards.sort((a, b) => b.valeur - a.valeur);
   }
 
   /** Add average points to the players as retrieved by stats */
