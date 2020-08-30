@@ -55,9 +55,9 @@ export default class ConsoleFormater {
 
       if (fixture.strategy) {
         // tslint:disable-next-line: max-line-length
-        if (fixture.strategy.oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) console.log(chalk`{bold.green ${position++}) ✔️ ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}`);
-        else if (fixture.strategy.oddGap < ODD_DIFFERENCE_TOO_SMALL) console.log(chalk`{yellow ${position++}) ⚡️} {red ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}`);
-        else console.log(chalk`{green ${position++}) ♣️ ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}`);
+        if (fixture.strategy.oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) console.log(chalk`{bold.green ${position++}) ✔️ ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}\t{gray ${fixture.fixture_id}}`);
+        else if (fixture.strategy.oddGap < ODD_DIFFERENCE_TOO_SMALL) console.log(chalk`{yellow ${position++}) ⚡️} {red ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}\t{gray ${fixture.fixture_id}}`);
+        else console.log(chalk`{green ${position++}) ♣️ ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}\t{gray ${fixture.fixture_id}}`);
 
         const bet = api.getBet(fixture.odds.bets, BetTypes.MatchWinner)
 
