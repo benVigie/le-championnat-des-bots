@@ -215,7 +215,7 @@ export interface IPotentialScore {
   average: number;
 }
 
-/** When using teams in startegy, attach game to it */
+/** When using teams in strategy, attach game to it */
 export interface ITeamAndGame extends ITeam {
   game: IFixture;
 }
@@ -288,29 +288,44 @@ export interface ILcdeInfos {
 }
 
 
-
+/** LCDE gamer ;) */
 export interface ILcdeGamer {
   id_joueurgroupe: string;
   id: string;
   nom: string;
 }
 
+/** Lcde forme, aka "Remplacant" or "Titulaire" */
+type LcdeForme = "R" | "T";
+
+/** Player info as retrieved by LCDE */
 export interface ILcdePlayer {
   id: number;
-  idws: string;
   nom: string;
-  nomcomplet: string;
-  valeur: string;
+  valeur: number;
   id_club: number;
   club: string;
   num: number;
-  place: string;
+  position: LcdePosition;
+  place: LcdePlace;
   numplace: number;
-  id_position: number;
-  imageclub: string;
   mappartient: boolean;
-  occupe: boolean;
   proprietaire: ILcdeGamer;
+  dateachat: string;
+  tituremp: string;
+  off: boolean;
+  capitaine: boolean;
+  supersub: number;
+  forme: {
+    items: LcdeForme[]
+  }
+  teamAndGame?: ITeamAndGame;
+}
+
+/** PLayer info and market data */
+export interface ILcdePlayerTrading extends ILcdePlayer {
+  prixachat: number;
+  plusvalue: number;
   blocage_action: boolean;
   pontdor_encours: boolean;
   surledepart: boolean;
@@ -325,24 +340,33 @@ export interface ILcdePlayer {
   enchereanticipee_encours: boolean;
   enchereanticipee_encours_datepassage: string;
   enchereanticipee_encours_parmoi: boolean;
-  position: string;
-  dateachat: string;
-  tituremp: string;
-  prixachat: number;
-  plusvalue: number;
-  propage: boolean;
-  off: boolean;
-  pointssupp: number;
-  capitaine: boolean;
-  supersub: number;
 }
-// A tester les valeurs:
-// position
-// tituremp
-// off
-// place
-// occupe
 
 export interface ILcdePlayersApiResponse {
-  joueurs: ILcdePlayer[]
+  joueurs: ILcdePlayerTrading[]
+}
+
+/** Lcde players position */
+export enum LcdePosition {
+  Keeper = "lib_gardien",
+  Back = "lib_defenseur",
+  Midfield = "lib_milieu",
+  Forward = "lib_attaquant"
+}
+
+/** Lcde players game place */
+export enum LcdePlace {
+  Field = "terrain",
+  Sub = "banc"
+}
+
+export interface ILcdeRoundApiResponse {
+  idjg: string;
+  journee: ILcdeRoundDetails;
+}
+
+export interface ILcdeRoundDetails {
+  id: string;
+  nom: string;
+  date_limite: string;
 }

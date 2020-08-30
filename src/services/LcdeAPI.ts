@@ -1,7 +1,7 @@
 import Axios, { Method } from "axios";
 import * as chalk from "chalk";
 // tslint:disable-next-line: max-line-length
-import { IApiErrorResponse, IApiStatus, IApiStatusResponse, IApiFixturesResponse, IFixture, IApiPredictionsResponse, IApiBookmakerOddsResponse, IBookmakerBet, IBetValues, IApiRoundsResponse, IBookmaker, ILcdeInfos, ILcdePlayersApiResponse, ILcdePlayer } from "./types";
+import { IApiErrorResponse, IApiStatus, IApiStatusResponse, IApiFixturesResponse, IFixture, IApiPredictionsResponse, IApiBookmakerOddsResponse, IBookmakerBet, IBetValues, IApiRoundsResponse, IBookmaker, ILcdeInfos, ILcdePlayersApiResponse, ILcdePlayer, ILcdeRoundApiResponse } from "./types";
 import ScoutBot from "../ScoutBot";
 import Tools from "./Tools";
 
@@ -47,6 +47,16 @@ export default class LcdeApi {
     this._password = password;
   }
 
+  /** To know if the user has been logegd and the api is ready */
+  get isLogged(): boolean {
+    return !!this._infos;
+  }
+
+  /** Get LCDE user infos  */
+  get userInfo(): ILcdeInfos {
+    return this._infos;
+  }
+
   /** Get request header. LCDE deals with x-access-key and authorization */
   private get requestHeader(): any {
     const headers: any = {
@@ -88,8 +98,8 @@ export default class LcdeApi {
     return this._infos;
   }
 
-  /** Login the user and retrieve info */
-  async getPlayersFromTeam(teamName: string, journee: string | number): Promise<ILcdePlayer[]> {
+  /** Login the user and retrieve info.  */
+  async getPlayersFromTeam<T>(teamName: string, journee: string | number): Promise<T[]> {
     const data = {
       filters: {
         "nom": "",
@@ -106,7 +116,15 @@ export default class LcdeApi {
       }
     };
     const apiResponse = await this.performsLcdeApiCall<ILcdePlayersApiResponse>("/private/searchjoueurs?lg=fr", POST, data);
-    return apiResponse.joueurs;
+    for (const player of apiResponse.joueurs) {
+      player.club = teamName
+    }
+    return apiResponse.joueurs as unknown as T[];
+  }
+
+  /** Get the current round */
+  async getCurrentRound(): Promise<ILcdeRoundApiResponse> {
+    return await this.performsLcdeApiCall<ILcdeRoundApiResponse>("/private/journee?lg=fr", GET);
   }
 
 }

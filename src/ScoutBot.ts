@@ -7,6 +7,7 @@ import { DateTime } from "luxon";
 import GameSorter from "./strategy/GameSorter";
 import ConsoleFormater from "./services/ConsoleFormater";
 import LcdeApi from "./services/LcdeAPI";
+import PlayerSorter from "./strategy/PlayerSorter";
 
 /** ScoutBot is the app orchestrator */
 export default class ScoutBot {
@@ -16,6 +17,7 @@ export default class ScoutBot {
   private _lcdeApi: LcdeApi;
   private _nextGames: IFixture[];
   private _gameSorter: GameSorter;
+  private _playerSorter: PlayerSorter;
   private _isInteractive: boolean;
 
   constructor(mode: AppMode, config: IConfiguration, args: IYargsArgs) {
@@ -24,6 +26,7 @@ export default class ScoutBot {
     this._api = new FootballApi(args.token);
     this._lcdeApi = new LcdeApi(args.email, args.password);
     this._gameSorter = new GameSorter(this._api);
+    this._playerSorter = new PlayerSorter(this._lcdeApi);
     this._isInteractive = args.interactive;
   }
 
@@ -36,7 +39,7 @@ export default class ScoutBot {
   /** Start the scout bot */
   async startScouting(): Promise<void> {
     try {
-      // DIsplay API usage and try to load today requests to save identical calls
+      // Display API usage and try to load today requests to save identical calls
       await this.displayApiStatus();
       this._nextGames = await this.loadFixtures();
 
@@ -53,11 +56,12 @@ export default class ScoutBot {
       const strategySorted = await this._gameSorter.sortGamesByOdds(this._nextGames, this._isInteractive);
       ConsoleFormater.displayStrategy(strategySorted, this._api);
 
-      // And now sort by points
+      // And now sort by points and display teams by potential scores
       const teams = this._gameSorter.sortTeamsByPoints(strategySorted);
       ConsoleFormater.displayTeamsByScore(teams);
 
-
+      // Retrieve players list from the best teams
+      this._playerSorter.getBestPlayers(teams);
     }
     catch (error) {
       if (!Tools.dumpAxiosError(error)) {
