@@ -79,7 +79,7 @@ export default class ScoutBot {
   /** Save daily games request to save api rates */
   private async saveFixtures(games: IFixture[]): Promise<void> {
     const now = DateTime.local();
-    await Tools.writeFile(`./${now.toISODate()}.json`, JSON.stringify(games, null, 2));
+    await Tools.writeFile(`./data/${now.toISODate()}.json`, JSON.stringify(games, null, 2));
   }
 
   /** Save daily games request to save api rates */
@@ -87,7 +87,7 @@ export default class ScoutBot {
     const now = DateTime.local();
 
     try {
-      const retrieved = await Tools.readFile<IFixture[]>(`./${now.toISODate()}.json`);
+      const retrieved = await Tools.readFile<IFixture[]>(`./data/${now.toISODate()}.json`);
       console.log(chalk`{gray Daily fixtures loaded}`);
       return retrieved;
     }
