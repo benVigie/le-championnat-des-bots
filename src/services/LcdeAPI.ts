@@ -1,12 +1,13 @@
 import Axios, { Method } from "axios";
 import * as chalk from "chalk";
 // tslint:disable-next-line: max-line-length
-import { IApiErrorResponse, IApiStatus, IApiStatusResponse, IApiFixturesResponse, IFixture, IApiPredictionsResponse, IApiBookmakerOddsResponse, IBookmakerBet, IBetValues, IApiRoundsResponse, IBookmaker, ILcdeInfos, ILcdePlayersApiResponse, ILcdePlayer, ILcdeRoundApiResponse } from "./types";
+import { IApiErrorResponse, IApiStatus, IApiStatusResponse, IApiFixturesResponse, IFixture, IApiPredictionsResponse, IApiBookmakerOddsResponse, IBookmakerBet, IBetValues, IApiRoundsResponse, IBookmaker, ILcdeInfos, ILcdePlayersApiResponse, ILcdePlayer, ILcdeRoundApiResponse, ILcdePlayersStatsApiResponse, ILcdePlayersStats } from "./types";
 import ScoutBot from "../ScoutBot";
 import Tools from "./Tools";
 
 const GET = "GET";
 const POST = "POST";
+const DATA_LIMIT = 30;
 
 /** Team codes used by lcde */
 const TEAM_CODE: any = {
@@ -110,7 +111,7 @@ export default class LcdeApi {
         "partant": false,
         "idj": journee,
         "pageIndex": 0,
-        "pageSize": 30,
+        "pageSize": DATA_LIMIT,
         "loadSelect": 0,
         "searchonly": 1
       }
@@ -120,6 +121,22 @@ export default class LcdeApi {
       player.club = teamName
     }
     return apiResponse.joueurs as unknown as T[];
+  }
+
+  /** Login the user and retrieve info.  */
+  async getTeamPlayersStatistics(teamName: string): Promise<ILcdePlayersStats[]> {
+    const data = {
+      credentials: {
+        critereRecherche: { club: TEAM_CODE[teamName], nom: "", position: "" },
+        critereTri: "moyenne_points",
+        loadSelect: 0,
+        pageIndex: 0,
+        pageSize: DATA_LIMIT
+      }
+    };
+
+    const apiResponse = await this.performsLcdeApiCall<ILcdePlayersStatsApiResponse>("/private/stats?lg=fr", POST, data);
+    return apiResponse.joueurs;
   }
 
   /** Get the current round */

@@ -320,6 +320,7 @@ export interface ILcdePlayer {
     items: LcdeForme[]
   }
   teamAndGame?: ITeamAndGame;
+  averagePoints?: number;
 }
 
 /** PLayer info and market data */
@@ -369,4 +370,22 @@ export interface ILcdeRoundDetails {
   id: string;
   nom: string;
   date_limite: string;
+}
+
+export interface ILcdePlayersStatCriteria {
+  message: string;
+  nom: string;
+  value: string | number;
+}
+export interface ILcdePlayersStats {
+  nom: string;
+  nomaffiche: string;
+  criteres: ILcdePlayersStatCriteria[];
+}
+
+/** LCDE players stats api response */
+export interface ILcdePlayersStatsApiResponse {
+  idjg: string;
+  joueurs: ILcdePlayersStats[];
+  total: number;
 }
