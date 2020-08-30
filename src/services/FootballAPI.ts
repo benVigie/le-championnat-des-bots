@@ -60,14 +60,14 @@ export default class FootballApi {
 
   /** Get all games for the current round */
   async getCurrentRoundGames(): Promise<IFixture[]> {
-    this.displayAction("Retrieving current round");
+    Tools.displayAction("Retrieving current round");
     const roundResponse = await this.performsFootballApiCall<IApiRoundsResponse>(`/fixtures/rounds/${LIGUE_1_ID}/current`);
-    this.displayAction("Retrieving current round", true, !!roundResponse.fixtures.length);
+    Tools.displayAction("Retrieving current round", true, !!roundResponse.fixtures.length);
     const round = roundResponse.fixtures[0];
 
-    this.displayAction("Retrieve round games");
+    Tools.displayAction("Retrieve round games");
     const apiResponse = await this.performsFootballApiCall<IApiFixturesResponse>(`/fixtures/league/${LIGUE_1_ID}/${round}?timezone=Europe/Paris`);
-    this.displayAction("Retrieve round games", true, !!apiResponse.fixtures.length);
+    Tools.displayAction("Retrieve round games", true, !!apiResponse.fixtures.length);
     return apiResponse.fixtures;
   }
 
@@ -76,9 +76,9 @@ export default class FootballApi {
     // tslint:disable-next-line: prefer-for-of
     for (let i = 0; i < games.length; i++) {
       // Retrieve pronostics and attach them
-      this.displayAction(`Retrieving ${games[i].homeTeam.team_name} - ${games[i].awayTeam.team_name} predictions`);
+      Tools.displayAction(`Retrieving ${games[i].homeTeam.team_name} - ${games[i].awayTeam.team_name} predictions`);
       const pronosticsResponse = await this.performsFootballApiCall<IApiPredictionsResponse>(`/predictions/${games[i].fixture_id}`);
-      this.displayAction(`Retrieving ${games[i].homeTeam.team_name} - ${games[i].awayTeam.team_name} predictions`, true, !!pronosticsResponse.predictions);
+      Tools.displayAction(`Retrieving ${games[i].homeTeam.team_name} - ${games[i].awayTeam.team_name} predictions`, true, !!pronosticsResponse.predictions);
       if (pronosticsResponse.predictions[0]) {
         delete pronosticsResponse.predictions[0].h2h;
         games[i].pronostics = pronosticsResponse.predictions[0];
@@ -91,14 +91,14 @@ export default class FootballApi {
 
   /** Retrieve bookmakers odds. If it fails, try the next bookie until we just have to stop :D */
   private async getBookmakerOdds(game: IFixture, bookmaker: number): Promise<void> {
-    this.displayAction(`Retrieving ${game.homeTeam.team_name} - ${game.awayTeam.team_name} bookmakers (${BOOKMAKERS[bookmaker].bookmaker_name}) odds`);
+    Tools.displayAction(`Retrieving ${game.homeTeam.team_name} - ${game.awayTeam.team_name} bookmakers (${BOOKMAKERS[bookmaker].bookmaker_name}) odds`);
     const bookiesResponse = await this.performsFootballApiCall<IApiBookmakerOddsResponse>(`/odds/fixture/${game.fixture_id}/bookmaker/${BOOKMAKERS[bookmaker].bookmaker_id}`);
     if (bookiesResponse.odds[0] && bookiesResponse.odds[0].bookmakers[0]) {
       game.odds = bookiesResponse.odds[0].bookmakers[0];
     }
 
     const retrieved = (game.odds !== undefined);
-    this.displayAction(`Retrieving ${game.homeTeam.team_name} - ${game.awayTeam.team_name} bookmakers (${BOOKMAKERS[bookmaker].bookmaker_name}) odds`, true, retrieved);
+    Tools.displayAction(`Retrieving ${game.homeTeam.team_name} - ${game.awayTeam.team_name} bookmakers (${BOOKMAKERS[bookmaker].bookmaker_name}) odds`, true, retrieved);
 
     // If the current bookmaker is unavailable, try another one
     if (!retrieved) {
@@ -115,16 +115,5 @@ export default class FootballApi {
       if (odd.label_name === oddType) return odd.values;
     }
     return [];
-  }
-
-  /** Diaply loading message if debug mode */
-  private displayAction(message: string, done?: boolean, isOk?: boolean): void {
-    if (!ScoutBot.configuration.debugTrace) return;
-
-    if (!done) Tools.writeConsole(chalk`{yellow   ⚡} {gray ${message}...}`);
-    else {
-      if (isOk) Tools.writeConsole(chalk`{green   ✔️} {gray ${message}\n}`, true);
-      else Tools.writeConsole(chalk`{red  ❗️} {gray ${message}\n}`, true);
-    }
   }
 }
