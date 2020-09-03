@@ -2,8 +2,9 @@ import * as chalk from "chalk";
 import { prompts } from "prompts";
 import ScoreCalculator from "./ScoreCalculator";
 import LcdeApi from "../services/LcdeAPI";
-import { ITeamAndGame, ILcdePlayer, LcdePosition, ILcdePlayersStats } from "../services/types";
+import { ITeamAndGame, ILcdePlayer, LcdePosition, ILcdePlayersStats, ILcdePlayersStatCriteria } from "../services/types";
 import Tools from "../services/Tools";
+import { PlayerStatCriteria } from "./types";
 
 /** Number of max players per team. Overrided to 2 for our league, can't find the info on LCDE */
 const MAX_PLAYERS_PER_TEAM = 2;
@@ -73,7 +74,8 @@ export default class PlayerSorter {
     // Type valeur as number and attach team and game
     player.valeur = parseFloat(player.valeur.toString());
     player.teamAndGame = team;
-    player.averagePoints = this.getPlayerAveragePoints(player, teamStats);
+    player.stats = this.getPlayerStats(player, teamStats);
+    if (player.stats) player.averagePoints = ScoreCalculator.readPlayerStat(player.stats, PlayerStatCriteria.AveragePoints);
 
     if (player.position === LcdePosition.Keeper) {
       ScoreCalculator.computePotentialKeeperScore(player)
@@ -103,19 +105,13 @@ export default class PlayerSorter {
     // this._playerList.forwards.sort((a, b) => b.valeur - a.valeur);
   }
 
-  /** Add average points to the players as retrieved by stats */
-  private getPlayerAveragePoints(player: ILcdePlayer, teamStats: ILcdePlayersStats[]): number {
-    let points = 0;
+  /** Retrieve player stats from stats list */
+  private getPlayerStats(player: ILcdePlayer, teamStats: ILcdePlayersStats[]): ILcdePlayersStatCriteria[] | undefined {
     for (const playerStats of teamStats) {
       if (playerStats.nomaffiche === player.nom) {
-        for (const stat of playerStats.criteres) {
-          if (stat.nom === "moyenne_points") {
-            points = (stat.value === "") ? 0 : parseFloat(stat.value.toString());
-          }
-        }
+        return playerStats.criteres;
       }
     }
-
-    return points;
+    console.log(chalk`{gray No stats retrieved for ${player.nom}}`);
   }
 }

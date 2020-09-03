@@ -1,4 +1,5 @@
-import { IFixture, MatchWinner, IPotentialScore, ILcdePlayer } from "../services/types";
+import { IFixture, MatchWinner, IPotentialScore, ILcdePlayer, ILcdePlayersStatCriteria } from "../services/types";
+import { PlayerStatCriteria } from "./types";
 
 /** Le championnat des etoiles scores rules */
 const RULES = {
@@ -14,6 +15,7 @@ const RULES = {
   keeper: {
     goal: 25,
     goalConceed: -3,
+    catch: 2,
     invincibility: 12
   },
   back: {
@@ -25,6 +27,10 @@ const RULES = {
   },
   forward: {
     goal: 12
+  },
+  cards: {
+    yellow: -3,
+    red: -5
   }
 };
 
@@ -93,10 +99,22 @@ export default class ScoreCalculator {
 
     const isHomeTeam = keeper.teamAndGame.team_id === keeper.teamAndGame.game.homeTeam.team_id;
     const goalTaken = this.getPossibleGoalsFromGames([keeper.teamAndGame.game.strategy.expectedScores[0], keeper.teamAndGame.game.strategy.expectedScores[1]], isHomeTeam);
+    const invincibility = (keeper.teamAndGame.game.strategy.oddMatchWinner === MatchWinner.Home && isHomeTeam) || (keeper.teamAndGame.game.strategy.oddMatchWinner === MatchWinner.Away && !isHomeTeam);
 
-    score.min += (goalTaken * RULES.keeper.goalConceed);
-    score.max += (goalTaken === 0) ? RULES.keeper.invincibility : 0;
-    score.average = (score.min + score.max) / 2;
+    if (keeper.stats) {
+      const nbGames = this.readPlayerStat(keeper.stats, PlayerStatCriteria.NbGames);
+      const yellow = this.readPlayerStat(keeper.stats, PlayerStatCriteria.YellowCard) / nbGames;
+      const red = this.readPlayerStat(keeper.stats, PlayerStatCriteria.RedCard) / nbGames;
+      const taken = this.readPlayerStat(keeper.stats, PlayerStatCriteria.GoalsTaken) / nbGames;
+      const stops = this.readPlayerStat(keeper.stats, PlayerStatCriteria.Caught) / nbGames;
+
+
+      score.min += (goalTaken / 2 * RULES.keeper.goalConceed) + (taken * RULES.keeper.goalConceed) + (yellow * RULES.cards.yellow) + (red * RULES.cards.red);
+      score.max += (stops * RULES.keeper.catch);
+      score.max += (invincibility) ? RULES.keeper.invincibility : 0;
+      score.max += (!isHomeTeam) ? RULES.team.awayWin - RULES.team.homeWin : 0;
+      score.average = (score.min + score.max) / 2;
+    }
 
     // Assign potential score
     keeper.potentialScore = score;
@@ -113,5 +131,14 @@ export default class ScoreCalculator {
     }
 
     return totalGoals;
+  }
+
+  /** Read the wanted criteria from stats array */
+  static readPlayerStat(stats: ILcdePlayersStatCriteria[], criteria: PlayerStatCriteria): number {
+    for (const stat of stats) {
+      if (stat.message === criteria) {
+        return (stat.value === "") ? 0 : parseFloat(stat.value.toString());
+      }
+    }
   }
 }
