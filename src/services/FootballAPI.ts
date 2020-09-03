@@ -1,9 +1,10 @@
 import Axios from "axios";
 import * as chalk from "chalk";
+import { prompts } from "prompts";
 // tslint:disable-next-line: max-line-length
-import { IApiErrorResponse, IApiStatus, IApiStatusResponse, IApiFixturesResponse, IFixture, IApiPredictionsResponse, IApiBookmakerOddsResponse, IBookmakerBet, IBetValues, IApiRoundsResponse, IBookmaker } from "./types";
-import ScoutBot from "../ScoutBot";
+import { IApiErrorResponse, IApiStatus, IApiStatusResponse, IApiFixturesResponse, IFixture, IApiPredictionsResponse, IApiBookmakerOddsResponse, IBookmakerBet, IBetValues, IApiRoundsResponse, IBookmaker, IApiStandingsResponse, ITeam, IStanding } from "./types";
 import Tools from "./Tools";
+import ScoutBot from "../ScoutBot";
 
 /** Football API URL */
 const FOOTBALL_API_URL = "https://v2.api-football.com";
@@ -59,15 +60,21 @@ export default class FootballApi {
   }
 
   /** Get all games for the current round */
-  async getCurrentRoundGames(): Promise<IFixture[]> {
-    this.displayAction("Retrieving current round");
-    const roundResponse = await this.performsFootballApiCall<IApiRoundsResponse>(`/fixtures/rounds/${LIGUE_1_ID}/current`);
-    this.displayAction("Retrieving current round", true, !!roundResponse.fixtures.length);
-    const round = roundResponse.fixtures[0];
+  async getCurrentRoundGames(forceRound?: number): Promise<IFixture[]> {
+    let round: string;
+    if (forceRound) round = `Regular_Season_-_${forceRound}`;
+    else {
+      Tools.displayAction("Retrieving current round");
+      const roundResponse = await this.performsFootballApiCall<IApiRoundsResponse>(`/fixtures/rounds/${LIGUE_1_ID}/current`);
+      Tools.displayAction("Retrieving current round", true, !!roundResponse.fixtures.length);
+      round = roundResponse.fixtures[0];
 
-    this.displayAction("Retrieve round games");
+      if (ScoutBot.args.interactive) round = await this.confirmRound(round);
+    }
+
+    Tools.displayAction(`Retrieve round ${round} games`);
     const apiResponse = await this.performsFootballApiCall<IApiFixturesResponse>(`/fixtures/league/${LIGUE_1_ID}/${round}?timezone=Europe/Paris`);
-    this.displayAction("Retrieve round games", true, !!apiResponse.fixtures.length);
+    Tools.displayAction(`Retrieve round ${round} games`, true, !!apiResponse.fixtures.length);
     return apiResponse.fixtures;
   }
 
@@ -76,9 +83,9 @@ export default class FootballApi {
     // tslint:disable-next-line: prefer-for-of
     for (let i = 0; i < games.length; i++) {
       // Retrieve pronostics and attach them
-      this.displayAction(`Retrieving ${games[i].homeTeam.team_name} - ${games[i].awayTeam.team_name} predictions`);
+      Tools.displayAction(`Retrieving ${games[i].homeTeam.team_name} - ${games[i].awayTeam.team_name} predictions`);
       const pronosticsResponse = await this.performsFootballApiCall<IApiPredictionsResponse>(`/predictions/${games[i].fixture_id}`);
-      this.displayAction(`Retrieving ${games[i].homeTeam.team_name} - ${games[i].awayTeam.team_name} predictions`, true, !!pronosticsResponse.predictions);
+      Tools.displayAction(`Retrieving ${games[i].homeTeam.team_name} - ${games[i].awayTeam.team_name} predictions`, true, !!pronosticsResponse.predictions);
       if (pronosticsResponse.predictions[0]) {
         delete pronosticsResponse.predictions[0].h2h;
         games[i].pronostics = pronosticsResponse.predictions[0];
@@ -89,16 +96,31 @@ export default class FootballApi {
     }
   }
 
+  /** Get current league standings */
+  async getAndAttachStandings(games: IFixture[]): Promise<void> {
+    // Retrieve pronostics and attach them
+    Tools.displayAction(`Retrieving league standings`);
+    const standingsResponse = await this.performsFootballApiCall<IApiStandingsResponse>(`/leagueTable/${LIGUE_1_ID}`);
+    if (standingsResponse.standings[0].length) {
+      Tools.displayAction(`Retrieving league standings (last update ${standingsResponse.standings[0][0].lastUpdate})`, true, true);
+      for (const game of games) {
+        this.attachStandingToTeam(standingsResponse.standings[0], game.homeTeam);
+        this.attachStandingToTeam(standingsResponse.standings[0], game.awayTeam);
+      }
+    }
+    else Tools.displayAction(`Retrieving league standings`, true, false);
+  }
+
   /** Retrieve bookmakers odds. If it fails, try the next bookie until we just have to stop :D */
   private async getBookmakerOdds(game: IFixture, bookmaker: number): Promise<void> {
-    this.displayAction(`Retrieving ${game.homeTeam.team_name} - ${game.awayTeam.team_name} bookmakers (${BOOKMAKERS[bookmaker].bookmaker_name}) odds`);
+    Tools.displayAction(`Retrieving ${game.homeTeam.team_name} - ${game.awayTeam.team_name} bookmakers (${BOOKMAKERS[bookmaker].bookmaker_name}) odds`);
     const bookiesResponse = await this.performsFootballApiCall<IApiBookmakerOddsResponse>(`/odds/fixture/${game.fixture_id}/bookmaker/${BOOKMAKERS[bookmaker].bookmaker_id}`);
     if (bookiesResponse.odds[0] && bookiesResponse.odds[0].bookmakers[0]) {
       game.odds = bookiesResponse.odds[0].bookmakers[0];
     }
 
     const retrieved = (game.odds !== undefined);
-    this.displayAction(`Retrieving ${game.homeTeam.team_name} - ${game.awayTeam.team_name} bookmakers (${BOOKMAKERS[bookmaker].bookmaker_name}) odds`, true, retrieved);
+    Tools.displayAction(`Retrieving ${game.homeTeam.team_name} - ${game.awayTeam.team_name} bookmakers (${BOOKMAKERS[bookmaker].bookmaker_name}) odds`, true, retrieved);
 
     // If the current bookmaker is unavailable, try another one
     if (!retrieved) {
@@ -106,6 +128,15 @@ export default class FootballApi {
         return await this.getBookmakerOdds(game, bookmaker);
       }
       console.error(chalk`{bgRed No bookmaker's odds available.}`);
+    }
+  }
+
+  /** get a list of standings and a team and match them */
+  private attachStandingToTeam(standings: IStanding[], team: ITeam): void {
+    for (const standing of standings) {
+      if (team.team_id === standing.team_id) {
+        team.standing = standing;
+      }
     }
   }
 
@@ -117,14 +148,17 @@ export default class FootballApi {
     return [];
   }
 
-  /** Diaply loading message if debug mode */
-  private displayAction(message: string, done?: boolean, isOk?: boolean): void {
-    if (!ScoutBot.configuration.debugTrace) return;
-
-    if (!done) Tools.writeConsole(chalk`{yellow   ⚡} {gray ${message}...}`);
-    else {
-      if (isOk) Tools.writeConsole(chalk`{green   ✔️} {gray ${message}\n}`, true);
-      else Tools.writeConsole(chalk`{red  ❗️} {gray ${message}\n}`, true);
-    }
+  /** Confirm current league round with user before sending requests */
+  private async confirmRound(round: string): Promise<string> {
+    const split = round.split("_");
+    const selectedRound = await prompts.number({
+      type: "number",
+      name: "value",
+      message: "WHich round do you want to compute ?",
+      initial: parseInt(split[split.length - 1], 10),
+      style: "default",
+      min: 1
+    }) as unknown as number;
+    return `Regular_Season_-_${selectedRound.toString()}`;
   }
 }

@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
 import * as Fs from "fs";
 import * as chalk from "chalk";
+import ScoutBot from "../ScoutBot";
 
 /** Provide usefull tools */
 export default class Tools {
@@ -47,5 +48,16 @@ Response: ${JSON.stringify(error.response.data)}}
       process.stdout.cursorTo(0);
     }
     process.stdout.write(message);
+  }
+
+  /** Display loading message if debug mode */
+  static displayAction(message: string, done?: boolean, isOk?: boolean): void {
+    if (!ScoutBot.configuration.debugTrace) return;
+
+    if (!done) Tools.writeConsole(chalk`{yellow   ⚡} {gray ${message}...}`);
+    else {
+      if (isOk) Tools.writeConsole(chalk`{green   ✔️} {gray ${message}\n}`, true);
+      else Tools.writeConsole(chalk`{red  ❗️} {gray ${message}\n}`, true);
+    }
   }
 }

@@ -1,8 +1,9 @@
 import * as chalk from "chalk";
 import { DateTime } from "luxon";
-import { IFixture, BetTypes, NO_PREDICTION_AVAILABLE, ITeam, ITeamAndGame } from "./types";
+import { IFixture, BetTypes, NO_PREDICTION_AVAILABLE, ITeam, ITeamAndGame, IBetValues } from "./types";
 import FootballApi from "./FootballAPI";
-import { ODD_DIFFERENCE_TRUST_LEVEL, ODD_DIFFERENCE_TOO_SMALL } from "./Stategy";
+import { ODD_DIFFERENCE_TRUST_LEVEL, ODD_DIFFERENCE_TOO_SMALL } from "../strategy/GameSorter";
+import { IPlayerList } from "../strategy/PlayerSorter";
 
 /** ConsoleFormater will handle console display for games ans strategies */
 export default class ConsoleFormater {
@@ -51,25 +52,26 @@ export default class ConsoleFormater {
   /** Display next games with all infos in console */
   static displayStrategy(fixtures: IFixture[], api: FootballApi): void {
     let position = 1;
-    for (const fixture of fixtures) {
 
+    console.log(chalk`{bgBlue \n${fixtures[0].round.toUpperCase()} STRATEGY RANKING\n}`);
+    for (const fixture of fixtures) {
       if (fixture.strategy) {
         // tslint:disable-next-line: max-line-length
-        if (fixture.strategy.oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) console.log(chalk`{bold.green ${position++}) ✔️ ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}`);
-        else if (fixture.strategy.oddGap < ODD_DIFFERENCE_TOO_SMALL) console.log(chalk`{yellow ${position++}) ⚡️} {red ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}`);
-        else console.log(chalk`{green ${position++}) ♣️ ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}`);
+        if (fixture.strategy.oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) console.log(chalk`{bold.green ${position++}) ✔️ ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}\t{gray ${fixture.fixture_id}}`);
+        else if (fixture.strategy.oddGap < ODD_DIFFERENCE_TOO_SMALL) console.log(chalk`{yellow ${position++}) ⚡️} {red ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}\t{gray ${fixture.fixture_id}}`);
+        else console.log(chalk`{green ${position++}) ♣️ ${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name}}\t{gray ${fixture.fixture_id}}`);
 
         const bet = api.getBet(fixture.odds.bets, BetTypes.MatchWinner)
 
         console.log(chalk`\n{bold.blue ${fixture.odds.bookmaker_name} odds:}`);
         // tslint:disable-next-line: max-line-length
-        console.log(chalk`{green Result: {bold ${fixture.strategy.oddMatchWinner}}\t${bet[0]?.value}: ${bet[0]?.odd} - ${bet[1]?.value}: ${bet[1]?.odd} - ${bet[2]?.value}: ${bet[2]?.odd}}\t{cyan Gap:} {cyan.bold ${fixture.strategy.oddGap.toFixed(2)}}`);
+        console.log(chalk`{green Result: {bold ${fixture.strategy.oddMatchWinner}}\t${this.getOdd(bet, "Home")} - ${this.getOdd(bet, "Draw")} - ${this.getOdd(bet, "Away")}}\t{cyan Gap:} {cyan.bold ${fixture.strategy.oddGap.toFixed(2)}}`);
         console.log(chalk`{gray Expected scores: {bold ${fixture.strategy.expectedScores.join("  /  ")}}}`);
         console.log(chalk`Confidence: {magenta.bold ${fixture.strategy.confidence}%}`);
         console.log(chalk`${fixture.homeTeam.team_name} potential game scores: {magenta.bold ${fixture.homeTeam.potentialScore.min} / ${fixture.homeTeam.potentialScore.max}}`);
         console.log(chalk`${fixture.awayTeam.team_name} potential game scores: {magenta.bold ${fixture.awayTeam.potentialScore.min} / ${fixture.awayTeam.potentialScore.max}}`);
       }
-      else console.log(chalk`${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name} {yellow.bold (unsorted - no strategy)}`);
+      else console.log(chalk`${fixture.homeTeam.team_name} vs ${fixture.awayTeam.team_name} {yellow.bold (unsorted - no strategy)}\t{gray ${fixture.fixture_id}}`);
 
       // Display pronostics if we have them
       if (fixture.pronostics) {
@@ -100,13 +102,36 @@ export default class ConsoleFormater {
 
     for (const team of teams) {
       if (team.potentialScore) {
-        let line = "";
-        if (position <= 6) line = chalk`{bold.green ${position++}) ${team.team_name}}`;
-        else if (team.potentialScore.average < 5) line = chalk`{red ${position++}) ${team.team_name}}`;
-        else line = chalk`{green ${position++}) ${team.team_name}}`;
-        console.log(chalk`${line}\t{yellow (${team.potentialScore.min}/${team.potentialScore.max})  {bold ${team.potentialScore.average}}}   {gray ${team.game.strategy.oddGap.toFixed(2)}}`);
+
+        if (team.potentialScore.average >= 5) {
+          let line = "";
+          line = (position <= 6) ? chalk`{bold.green ${position++}) ${team.team_name}} ` : chalk`{green ${position++}) ${team.team_name}} `;
+          line += this.displayTeamForme(team.standing.forme);
+          console.log(chalk`${line}\t{yellow (${team.potentialScore.min}/${team.potentialScore.max})  {bold ${team.potentialScore.average}}}   {gray ${team.game.strategy.oddGap.toFixed(2)}}`);
+
+          // Display opponent infos
+          const opponent = (team.game.homeTeam.team_id === team.team_id) ? team.game.awayTeam : team.game.homeTeam;
+          console.log(chalk`   {gray vs ${opponent.team_name} ${this.displayTeamForme(opponent.standing.forme)}}`);
+        }
       }
       else console.log(chalk`{gray ?) ${team.team_name}}`);
+    }
+    console.log(chalk`{gray \n---\n}`);
+  }
+
+  /** Display the best keepers from a given list of teams */
+  static displayBestKeepers(playerList: IPlayerList): void {
+    let position = 1;
+
+    console.log(chalk`{bold.gray Best keepers\n}`);
+
+    for (const keeper of playerList.keepers) {
+      let line = "";
+      if (position <= 2) line = chalk`{bold.green ${position++}) ${keeper.club} - ${keeper.nom}}`;
+      else line = chalk`{green ${position++}) ${keeper.club} - ${keeper.nom}}`;
+
+      line += chalk`\tExpected score: {yellow (${keeper.potentialScore.min}/${keeper.potentialScore.max}) {bold ${keeper.potentialScore.average}}}\tAverage score: {magenta ${keeper.averagePoints}}\tValue: ${keeper.valeur}`;
+      console.log(line);
     }
     console.log(chalk`{gray \n---\n}`);
   }
@@ -116,5 +141,26 @@ export default class ConsoleFormater {
     if (values[0] !== "0%" && values[1] !== "0%") {
       console.log(chalk`{bold.blue ${title}:} {yellow ${values.join(" / ")}}`);
     }
+  }
+
+  /** Helper for pronostic display */
+  private static getOdd(odds: IBetValues[], field: string): string {
+    for (const odd of odds) {
+      if (odd.value === field) return `${odd.value}: ${odd.odd}`;
+    }
+    return "";
+  }
+
+  /** Helper for pronostic display */
+  private static displayTeamForme(forme: string): string {
+    if (!forme) return "";
+
+    let formeViewer = "";
+    for (let i = forme.length - 1; i >= 0; i--) {
+      if (forme[i] === 'W') formeViewer += chalk`{bold.green o}`;
+      else if (forme[i] === 'D') formeViewer += chalk`{bold.gray o}`;
+      else formeViewer += chalk`{bold.red o}`;
+    }
+    return formeViewer;
   }
 }
