@@ -13,12 +13,12 @@ import PlayerSorter from "./strategy/PlayerSorter";
 export default class ScoutBot {
   private static _config: IConfiguration;
   private static _mode: AppMode;
+  private static _appArgs: IYargsArgs;
   private _api: FootballApi;
   private _lcdeApi: LcdeApi;
   private _nextGames: IFixture[];
   private _gameSorter: GameSorter;
   private _playerSorter: PlayerSorter;
-  private _isInteractive: boolean;
 
   constructor(mode: AppMode, config: IConfiguration, args: IYargsArgs) {
     ScoutBot._mode = mode;
@@ -27,7 +27,7 @@ export default class ScoutBot {
     this._lcdeApi = new LcdeApi(args.email, args.password);
     this._gameSorter = new GameSorter(this._api);
     this._playerSorter = new PlayerSorter(this._lcdeApi);
-    this._isInteractive = args.interactive;
+    ScoutBot._appArgs = args;
   }
 
   /** Retrieve app mode, either dev or production */
@@ -35,6 +35,9 @@ export default class ScoutBot {
 
   /** Retrieve app config */
   static get configuration(): IConfiguration { return ScoutBot._config; }
+
+  /** Retrieve app args */
+  static get args(): IYargsArgs { return ScoutBot._appArgs; }
 
   /** Start the scout bot */
   async startScouting(): Promise<void> {
@@ -45,15 +48,16 @@ export default class ScoutBot {
 
       // If nothing was saved today, retrieved games
       if (!this._nextGames.length) {
-        this._nextGames = await this._api.getCurrentRoundGames();
+        this._nextGames = await this._api.getCurrentRoundGames(ScoutBot._appArgs.round);
 
         // Retrieve and attach pronostics and save the day :p
         await this._api.getAndAttachPronostics(this._nextGames);
+        await this._api.getAndAttachStandings(this._nextGames);
         await this.saveFixtures(this._nextGames);
       }
 
       // Display strategy sort
-      const strategySorted = await this._gameSorter.sortGamesByOdds(this._nextGames, this._isInteractive);
+      const strategySorted = await this._gameSorter.sortGamesByOdds(this._nextGames, ScoutBot._appArgs.interactive);
       ConsoleFormater.displayStrategy(strategySorted, this._api);
 
       // And now sort by points and display teams by potential scores

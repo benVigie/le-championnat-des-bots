@@ -60,6 +60,7 @@ export interface ITeam {
   team_name: string;
   logo?: string;
   potentialScore?: IPotentialScore;
+  standing?: IStanding;
 }
 
 interface ITeamStatTotal {
@@ -256,6 +257,21 @@ export interface IApiBookmakerOddsResponse extends IApiResponse {
   odds: IOdds[];
 }
 
+export interface IApiStandingsResponse extends IApiResponse {
+  standings: [IStanding[]];
+}
+
+export interface IStanding extends IApiResponse {
+  rank: number;
+  team_id: number;
+  teamName: string;
+  forme: string;
+  goalsDiff: number;
+  points: number;
+  lastUpdate: string;
+}
+
+
 /** Le championnat des etoiles info data retrieved on login */
 export interface ILcdeGroup {
   id: string,
@@ -319,9 +335,11 @@ export interface ILcdePlayer {
   forme: {
     items: LcdeForme[]
   }
+
   teamAndGame?: ITeamAndGame;
   averagePoints?: number;
   potentialScore?: IPotentialScore;
+  stats: ILcdePlayersStatCriteria[];
 }
 
 /** PLayer info and market data */
