@@ -12,8 +12,8 @@ const FOOTBALL_API_URL = "https://v2.api-football.com";
 const LIGUE_1_ID = 2664;
 /** Bokmakers list */
 const BOOKMAKERS: IBookmaker[] = [
-  { bookmaker_id: 1, bookmaker_name: "10bet" },
   { bookmaker_id: 6, bookmaker_name: "BWIN" },
+  { bookmaker_id: 1, bookmaker_name: "10bet" },
   { bookmaker_id: 11, bookmaker_name: "1xbet" },
 ];
 
