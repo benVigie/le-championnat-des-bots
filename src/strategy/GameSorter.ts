@@ -24,7 +24,7 @@ export default class GameSorter {
         game = await this.askForUserOdds(game);
       }
       if (game.odds) {
-        game.strategy = this.compareOddsAndPronostics(game.pronostics, game.odds);
+        game.strategy = this.compareOddsAndPronostics(game.pronostics, game.odds, game);
         ScoreCalculator.computePotentialTeamScores(game);
       }
       else console.error(chalk`{bgRed No odds for ${game.homeTeam.team_name} - ${game.awayTeam.team_name}. The strategy cannot be computed.}`);
@@ -57,7 +57,7 @@ export default class GameSorter {
   }
 
   /** Extract data from odds and pronostics and return a IStrategyResult */
-  private compareOddsAndPronostics(predictions: IPrediction, odds: IBookmaker): IStrategyResult {
+  private compareOddsAndPronostics(predictions: IPrediction, odds: IBookmaker, game: IFixture): IStrategyResult {
     // Retrieve bet match winner
     const bet = this._api.getBet(odds.bets, BetTypes.MatchWinner);
     if (bet.length === 0) return null;
@@ -69,12 +69,13 @@ export default class GameSorter {
     compareOdds = compareOdds.sort((a, b) => { return a.odd - b.odd });
     const oddGap = compareOdds[1].odd - compareOdds[0].odd;
     const oddMatchWinner = this.getMatchWinner(compareOdds, oddGap);
+    const expectedScores = this.getBookmakerExpectedScores(oddMatchWinner, odds, oddGap, game);
 
     return {
       oddGap,
       oddMatchWinner,
-      confidence: this.getConfidence(predictions, oddMatchWinner, odds, oddGap),
-      expectedScores: this.getBookmakerExpectedScores(odds),
+      expectedScores,
+      confidence: this.getConfidence(predictions, oddMatchWinner, expectedScores, oddGap, game),
     }
   }
 
@@ -92,7 +93,7 @@ export default class GameSorter {
   }
 
   /** Retrieve the match winner according to odds comparaison */
-  private getConfidence(predictions: IPrediction, oddWinner: MatchWinner, odds: IBookmaker, oddGap: number): number {
+  private getConfidence(predictions: IPrediction, oddWinner: MatchWinner, scores: string[], oddGap: number, game: IFixture): number {
     // Gap score
     let confidenceScore = ((oddGap - 1) * 100) > 100 ? 100 : ((oddGap - 1) * 100);
 
@@ -100,23 +101,36 @@ export default class GameSorter {
     if (oddWinner === predictions.match_winner || predictions.advice === NO_PREDICTION_AVAILABLE) confidenceScore += 20;
 
     // Add points if goals odds are the same as match winner
-    const scores = this.getBookmakerExpectedScores(odds);
-    const [homeScore, awayScore] = scores[0].split(":");
-    let scoreExpectedWinner = MatchWinner.Draw;
-    if (homeScore > awayScore) scoreExpectedWinner = MatchWinner.Home;
-    if (homeScore < awayScore) scoreExpectedWinner = MatchWinner.Away;
+    if (scores.length) {
+      const [homeScore, awayScore] = scores[0].split(":");
+      let scoreExpectedWinner = MatchWinner.Draw;
+      if (homeScore > awayScore) scoreExpectedWinner = MatchWinner.Home;
+      if (homeScore < awayScore) scoreExpectedWinner = MatchWinner.Away;
 
-    if (oddWinner === scoreExpectedWinner) confidenceScore += 25;
+      if (oddWinner === scoreExpectedWinner) confidenceScore += 25;
+    }
 
     return Math.round(confidenceScore / 145 * 100);
   }
 
-  /** Retrieve the match winner according to odds comparaison */
-  private getBookmakerExpectedScores(odds: IBookmaker): string[] {
+  /** Retrieve the match winner according to odds comparaison. If there is no such information, create fake score according game data */
+  private getBookmakerExpectedScores(oddWinner: MatchWinner, odds: IBookmaker, oddGap: number, game: IFixture): string[] {
     let bet = this._api.getBet(odds.bets, BetTypes.ExactScore)
     bet = bet.sort((a, b) => { return parseFloat(a.odd) - parseFloat(b.odd) });
     if (bet.length) return [`${bet[0].value}: ${bet[0].odd}`, `${bet[1].value}: ${bet[1].odd}`, `${bet[2].value}: ${bet[2].odd}`, `${bet[3].value}: ${bet[3].odd}`];
-    return [];
+    else {
+      console.warn(chalk`{yellow Cannot retrieve expected scores for ${game.homeTeam.team_name} - ${game.awayTeam.team_name}}`);
+      return this.generateExpectedScoresBasedOnGame(oddWinner, oddGap);
+    }
+  }
+
+  /** If we can't retrieve expected scores for  */
+  private generateExpectedScoresBasedOnGame(oddWinner: MatchWinner, oddGap: number): string[] {
+    if (oddGap >= ODD_DIFFERENCE_TRUST_LEVEL) {
+      if (oddWinner === MatchWinner.Home) return ["1:0 ???"];
+      else return ["0:1 ???"];
+    }
+    return ["0:0 ???"];
   }
 
   /** Retrieve teams list from fixture */

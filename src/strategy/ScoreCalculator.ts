@@ -126,8 +126,10 @@ export default class ScoreCalculator {
 
     // Extract number of goals from each scores and add it to total goals
     for (const score of scores) {
-      const goals = score.split(":");
-      totalGoals += (isHomeTeam) ? parseInt(goals[1], 10) : parseInt(goals[0], 10);
+      if (score) {
+        const goals = score.split(":");
+        totalGoals += (isHomeTeam) ? parseInt(goals[1], 10) : parseInt(goals[0], 10);
+      }
     }
 
     return totalGoals;
