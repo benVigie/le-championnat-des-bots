@@ -1,3 +1,12 @@
+import { ILcdePlayer } from "../services/types";
+
+export interface IPlayerList {
+  keepers: ILcdePlayer[];
+  backs: ILcdePlayer[];
+  midfields: ILcdePlayer[];
+  strikers: ILcdePlayer[];
+}
+
 export enum PlayerStatCriteria {
   NbGames = "Nombre de matchs",
   GoalsTaken = "Buts encaissés",
