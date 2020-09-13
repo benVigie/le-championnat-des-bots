@@ -1,7 +1,7 @@
 import { AppMode, IConfiguration, IYargsArgs } from "./Main";
 import FootballApi from "./services/FootballAPI";
 import Tools from "./services/Tools";
-import { IFixture } from "./services/types";
+import { IFixture, LcdePosition } from "./services/types";
 import * as chalk from "chalk";
 import { DateTime } from "luxon";
 import GameSorter from "./strategy/GameSorter";
@@ -66,7 +66,10 @@ export default class ScoutBot {
 
       // Retrieve players list from the best teams
       const playerList = await this._playerSorter.getBestPlayers(teams);
-      ConsoleFormater.displayBestKeepers(playerList);
+      ConsoleFormater.displayBestPlayers(LcdePosition.Keeper, playerList, this._lcdeApi.userInfo);
+      ConsoleFormater.displayBestPlayers(LcdePosition.Back, playerList, this._lcdeApi.userInfo);
+      ConsoleFormater.displayBestPlayers(LcdePosition.Midfield, playerList, this._lcdeApi.userInfo);
+      ConsoleFormater.displayBestPlayers(LcdePosition.Striker, playerList, this._lcdeApi.userInfo);
     }
     catch (error) {
       if (!Tools.dumpAxiosError(error)) {

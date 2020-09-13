@@ -207,6 +207,7 @@ export interface IStrategyResult {
   oddMatchWinner: MatchWinner;
   confidence: number;
   expectedScores: string[];
+  goalRatio: [number, number];
 }
 
 /** Min and max potential scores */
@@ -371,7 +372,7 @@ export enum LcdePosition {
   Keeper = "lib_gardien",
   Back = "lib_defenseur",
   Midfield = "lib_milieu",
-  Forward = "lib_attaquant"
+  Striker = "lib_attaquant"
 }
 
 /** Lcde players game place */
