@@ -1,32 +1,26 @@
-import * as chalk from "chalk";
-import { prompts } from "prompts";
 import ScoreCalculator from "./ScoreCalculator";
 import LcdeApi from "../services/LcdeAPI";
 import { ITeamAndGame, ILcdePlayer, LcdePosition, ILcdePlayersStats, ILcdePlayersStatCriteria } from "../services/types";
 import Tools from "../services/Tools";
-import { PlayerStatCriteria } from "./types";
+import { IPlayerList, PlayerStatCriteria } from "./types";
+import { ODD_DIFFERENCE_TOO_SMALL } from "./GameSorter";
+import Helper from "./Helper";
 
 /** Number of max players per team. Overrided to 2 for our league, can't find the info on LCDE */
 const MAX_PLAYERS_PER_TEAM = 2;
+/** How many players we ideally want each week. Minimum 11. */
 const EXPECTED_PLAYERS_NUMBER = 15;
-
-export interface IPlayerList {
-  keepers: ILcdePlayer[];
-  backs: ILcdePlayer[];
-  midfields: ILcdePlayer[];
-  forwards: ILcdePlayer[];
-}
+/** How many teams we need to include to ahve our number of players, according team cap limit */
+const MAX_TEAMS = Math.ceil(EXPECTED_PLAYERS_NUMBER / MAX_PLAYERS_PER_TEAM);
 
 /** Game logic on players and their points */
 export default class PlayerSorter {
   private _api: LcdeApi;
-  private _scoreCalculator: ScoreCalculator;
   private _playerList: IPlayerList;
 
   constructor(api: LcdeApi) {
     this._api = api;
-    this._scoreCalculator = new ScoreCalculator();
-    this._playerList = { keepers: [], backs: [], midfields: [], forwards: [] };
+    this._playerList = { keepers: [], backs: [], midfields: [], strikers: [] };
   }
 
   /** Retrieve the sorted player list */
@@ -39,70 +33,106 @@ export default class PlayerSorter {
     if (!this._api.isLogged) await this._api.login();
     const round = await this._api.getCurrentRound();
 
-    // Computes how many teams we want to use according players cap
-    const maxTeam = Math.ceil(EXPECTED_PLAYERS_NUMBER / MAX_PLAYERS_PER_TEAM);
-
-    // Retrieve players from the first 8 teams
-    for (let i = 0; i < maxTeam; i++) {
+    // Retrieve all players from the first 8 teams and attach their stats
+    for (let i = 0; i < MAX_TEAMS; i++) {
       // Retrieve player list
-      Tools.displayAction(`${i + 1}/${maxTeam} Retrieving ${teams[i].team_name} player list`);
+      Tools.displayAction(`${i + 1}/${MAX_TEAMS} Retrieving ${teams[i].team_name} player list`);
       const players = await this._api.getPlayersFromTeam<ILcdePlayer>(teams[i].team_name, round.journee.id);
-      Tools.displayAction(`${i + 1}/${maxTeam} Retrieving ${teams[i].team_name} player list`, true, true);
+      Tools.displayAction(`${i + 1}/${MAX_TEAMS} Retrieving ${teams[i].team_name} player list`, true, true);
 
       // Retrieve team statistics
-      Tools.displayAction(`${i + 1}/${maxTeam} Retrieving ${teams[i].team_name} player stats`);
+      Tools.displayAction(`${i + 1}/${MAX_TEAMS} Retrieving ${teams[i].team_name} player stats`);
       const teamStats = await this._api.getTeamPlayersStatistics(teams[i].team_name);
-      Tools.displayAction(`${i + 1}/${maxTeam} Retrieving ${teams[i].team_name} player stats`, true, true);
+      Tools.displayAction(`${i + 1}/${MAX_TEAMS} Retrieving ${teams[i].team_name} player stats`, true, true);
 
       // Once we have players and statistics, format them and attach stats
       for (const player of players) {
-        this.addPlayerInCategory(player, teams[i], teamStats);
+        this.attachStatsAndScoreToPlayer(player, teams[i], teamStats);
       }
     }
 
-    // Limit the player list
-    this.limitPlayerList(maxTeam);
+    // First, sort and limit the player lists by category
+    this.sortAndLimitPlayerList();
 
-    // Sort the player list
-    this.sortPlayerListByPotentialAverageScore();
+    // Then, sort the player list by players's average score calculated by our algo
+    this._playerList.keepers.sort(this.averageScoreSort);
+    this._playerList.backs.sort(this.averageScoreSort);
+    this._playerList.midfields.sort(this.averageScoreSort);
+    this._playerList.strikers.sort(this.maxScoreSort);
+
+    // Finally keep only the best players (to avoid having too much choices)
+    this.keepBestPlayers();
 
     return this._playerList;
   }
 
   /** Format player and add him in the right category according his position */
-  private addPlayerInCategory(player: ILcdePlayer, team: ITeamAndGame, teamStats: ILcdePlayersStats[]): void {
+  private attachStatsAndScoreToPlayer(player: ILcdePlayer, team: ITeamAndGame, teamStats: ILcdePlayersStats[]): void {
     // Type valeur as number and attach team and game
     player.valeur = parseFloat(player.valeur.toString());
     player.teamAndGame = team;
     player.stats = this.getPlayerStats(player, teamStats);
-    if (player.stats) player.averagePoints = ScoreCalculator.readPlayerStat(player.stats, PlayerStatCriteria.AveragePoints);
+    if (player.stats) player.averagePoints = Helper.readPlayerStat(player.stats, PlayerStatCriteria.AveragePoints);
 
-    if (player.position === LcdePosition.Keeper) {
-      ScoreCalculator.computePotentialKeeperScore(player)
-      this._playerList.keepers.push(player);
+    // According to their position, compute score and push them in the right list
+    switch (player.position) {
+      case LcdePosition.Keeper:
+        ScoreCalculator.computePotentialKeeperScore(player);
+        this._playerList.keepers.push(player);
+        break;
+      case LcdePosition.Back:
+        ScoreCalculator.computePotentialBackScore(player);
+        this._playerList.backs.push(player);
+        break;
+      case LcdePosition.Midfield:
+        ScoreCalculator.computePotentialMidfieldScore(player);
+        this._playerList.midfields.push(player);
+        break;
+      case LcdePosition.Striker:
+        ScoreCalculator.computePotentialStrikerScore(player);
+        this._playerList.strikers.push(player);
     }
-    if (player.position === LcdePosition.Back) this._playerList.backs.push(player);
-    if (player.position === LcdePosition.Midfield) this._playerList.midfields.push(player);
-    if (player.position === LcdePosition.Forward) this._playerList.forwards.push(player);
   }
 
-  /** We don't need 75 keepers and 216 forwards. Limit the list of players according to some sorts */
-  private limitPlayerList(maxTeam: number): void {
-    // Limit keepers list by taking the first ones we better market value
+  /** We don't need 75 keepers and 216 strikers. Limit the list of players according to some sorts */
+  private sortAndLimitPlayerList(): void {
+    // Limit keepers list by taking the first ones with better market value
     this._playerList.keepers.sort((a, b) => b.valeur - a.valeur);
-    this._playerList.keepers = this._playerList.keepers.slice(0, maxTeam);
-
-    this._playerList.backs.sort((a, b) => b.valeur - a.valeur);
-    this._playerList.midfields.sort((a, b) => b.valeur - a.valeur);
-    this._playerList.forwards.sort((a, b) => b.valeur - a.valeur);
+    this._playerList.keepers = this._playerList.keepers.slice(0, MAX_TEAMS);
+    // Do not limit back, midfields and strikers for now
   }
 
-  /** Sort players by their expected point */
-  private sortPlayerListByPotentialAverageScore(): void {
-    this._playerList.keepers.sort((a, b) => b.potentialScore.average - a.potentialScore.average);
-    // this._playerList.backs.sort((a, b) => b.valeur - a.valeur);
-    // this._playerList.midfields.sort((a, b) => b.valeur - a.valeur);
-    // this._playerList.forwards.sort((a, b) => b.valeur - a.valeur);
+  /** Called when we sort our players categories. Just keep the best ones */
+  private keepBestPlayers(): void {
+    // Only keep keepers with a high winner odds.
+    this._playerList.keepers.forEach((keeper, index, list) => {
+      if (keeper.teamAndGame.game.strategy.oddGap < ODD_DIFFERENCE_TOO_SMALL) {
+        list.splice(index, 1);
+      }
+    });
+
+    // As we can have maximum 4 backs or midfieders, limit our results
+    this._playerList.backs = this._playerList.backs.slice(0, 4 * MAX_TEAMS);
+    this._playerList.midfields = this._playerList.midfields.slice(0, 4 * MAX_TEAMS);
+
+    // Max 3 strikers
+    this._playerList.strikers = this._playerList.strikers.slice(0, 3 * MAX_TEAMS);
+  }
+
+  /** Function used to sort players. Compare average score, but in case of same score, push the player with better game score */
+  private averageScoreSort(a: ILcdePlayer, b: ILcdePlayer): number {
+    if (a.potentialScore.average === b.potentialScore.average) {
+      return b.averagePoints - a.averagePoints;
+    }
+    return b.potentialScore.average - a.potentialScore.average;
+  }
+
+  /** Function used to sort players by max points. In case of same score, push the player with better game score */
+  private maxScoreSort(a: ILcdePlayer, b: ILcdePlayer): number {
+    if (a.potentialScore.max === b.potentialScore.max) {
+      return b.averagePoints - a.averagePoints;
+    }
+    return b.potentialScore.max - a.potentialScore.max;
   }
 
   /** Retrieve player stats from stats list */
@@ -112,6 +142,5 @@ export default class PlayerSorter {
         return playerStats.criteres;
       }
     }
-    console.log(chalk`{gray No stats retrieved for ${player.nom}}`);
   }
 }
