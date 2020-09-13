@@ -1,9 +1,5 @@
 import Axios, { Method } from "axios";
-import * as chalk from "chalk";
-// tslint:disable-next-line: max-line-length
-import { IApiErrorResponse, IApiStatus, IApiStatusResponse, IApiFixturesResponse, IFixture, IApiPredictionsResponse, IApiBookmakerOddsResponse, IBookmakerBet, IBetValues, IApiRoundsResponse, IBookmaker, ILcdeInfos, ILcdePlayersApiResponse, ILcdePlayer, ILcdeRoundApiResponse, ILcdePlayersStatsApiResponse, ILcdePlayersStats } from "./types";
-import ScoutBot from "../ScoutBot";
-import Tools from "./Tools";
+import { ILcdeInfos, ILcdePlayersApiResponse, ILcdePlayersStats, ILcdePlayersStatsApiResponse, ILcdeRoundApiResponse } from "./types";
 
 const GET = "GET";
 const POST = "POST";

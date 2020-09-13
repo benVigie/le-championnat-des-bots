@@ -154,7 +154,7 @@ export default class FootballApi {
     const selectedRound = await prompts.number({
       type: "number",
       name: "value",
-      message: "WHich round do you want to compute ?",
+      message: "Which round do you want to compute ?",
       initial: parseInt(split[split.length - 1], 10),
       style: "default",
       min: 1

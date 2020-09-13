@@ -7,7 +7,7 @@ import ScoreCalculator from "./ScoreCalculator";
 /** This const define the trust level on odds difference. If the difference between the 2 closer odds are more than this trigger, we think it's good enough to have a winner */
 export const ODD_DIFFERENCE_TRUST_LEVEL = 1.4;
 /** Odds difference too small to risk a bet */
-export const ODD_DIFFERENCE_TOO_SMALL = 1;
+export const ODD_DIFFERENCE_TOO_SMALL = 1.09;
 
 /** Regroup all sort strategies for games and teams */
 export default class GameSorter {
@@ -76,6 +76,7 @@ export default class GameSorter {
       oddMatchWinner,
       expectedScores,
       confidence: this.getConfidence(predictions, oddMatchWinner, expectedScores, oddGap, game),
+      goalRatio: ScoreCalculator.getGoalRatio(odds.bets),
     }
   }
 
