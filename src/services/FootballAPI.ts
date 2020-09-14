@@ -2,9 +2,10 @@ import Axios from "axios";
 import * as chalk from "chalk";
 import { prompts } from "prompts";
 // tslint:disable-next-line: max-line-length
-import { IApiErrorResponse, IApiStatus, IApiStatusResponse, IApiFixturesResponse, IFixture, IApiPredictionsResponse, IApiBookmakerOddsResponse, IBookmakerBet, IBetValues, IApiRoundsResponse, IBookmaker, IApiStandingsResponse, ITeam, IStanding } from "./types";
+import { IApiErrorResponse, IApiStatus, IApiStatusResponse, IApiFixturesResponse, IFixture, IApiPredictionsResponse, IApiBookmakerOddsResponse, IBookmakerBet, IBetValues, IApiRoundsResponse, IBookmaker, IApiStandingsResponse, ITeam, IStanding, BetTypes } from "./types";
 import Tools from "./Tools";
 import ScoutBot from "../ScoutBot";
+import Helper from "../strategy/Helper";
 
 /** Football API URL */
 const FOOTBALL_API_URL = "https://v2.api-football.com";
@@ -119,8 +120,18 @@ export default class FootballApi {
       game.odds = bookiesResponse.odds[0].bookmakers[0];
     }
 
-    const retrieved = (game.odds !== undefined);
-    Tools.displayAction(`Retrieving ${game.homeTeam.team_name} - ${game.awayTeam.team_name} bookmakers (${BOOKMAKERS[bookmaker].bookmaker_name}) odds`, true, retrieved);
+    let errorReason = "";
+    let retrieved = (game.odds !== undefined);
+    if (!retrieved) errorReason = " (no odds)";
+
+    // Be sure retrieved oods have all info needed
+    if (retrieved) {
+      retrieved = !!Helper.getBet(game.odds.bets, BetTypes.MatchWinner).length;
+      if (!retrieved) errorReason = " (no match winner odds)";
+    }
+
+    // tslint:disable-next-line: max-line-length
+    Tools.displayAction(`Retrieving ${game.homeTeam.team_name} - ${game.awayTeam.team_name} bookmakers (${BOOKMAKERS[bookmaker].bookmaker_name}) odds ${errorReason}`, true, retrieved);
 
     // If the current bookmaker is unavailable, try another one
     if (!retrieved) {
