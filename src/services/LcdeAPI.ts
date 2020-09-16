@@ -1,5 +1,6 @@
 import Axios, { Method } from "axios";
-import { ILcdeInfos, ILcdePlayersApiResponse, ILcdePlayersStats, ILcdePlayersStatsApiResponse, ILcdeRoundApiResponse } from "./types";
+// tslint:disable-next-line: max-line-length
+import { ILcdeInfos, ILcdePlayer, ILcdePlayersApiResponse, ILcdePlayersStats, ILcdePlayersStatsApiResponse, ILcdeRoundApiResponse, ILcdeStandings, ILcdeTeamApiResponse, LcdePlayerActions, LcdePlayerActionsBuyData, LcdePlayerActionsMoveData } from "./types";
 
 const GET = "GET";
 const POST = "POST";
@@ -38,6 +39,7 @@ export default class LcdeApi {
   private _email: string;
   private _password: string;
   private _infos: ILcdeInfos;
+  private _currentRound: ILcdeRoundApiResponse;
 
   constructor(email: string, password: string) {
     this._email = email;
@@ -134,7 +136,42 @@ export default class LcdeApi {
 
   /** Get the current round */
   async getCurrentRound(): Promise<ILcdeRoundApiResponse> {
-    return await this.performsLcdeApiCall<ILcdeRoundApiResponse>("/private/journee?lg=fr", GET);
+    if (!this._currentRound) {
+      const round = await this.performsLcdeApiCall<ILcdeRoundApiResponse>("/private/journee?lg=fr", GET);
+      this._currentRound = round;
+    }
+    return this._currentRound
+  }
+
+  /** Retrieve the gamer's current team */
+  async getMyTeam(): Promise<ILcdeStandings> {
+    const round = await this.getCurrentRound();
+    const apiResponse = await this.performsLcdeApiCall<ILcdeTeamApiResponse>(`/private/feuillematch/${round.journee.id}/${this.userInfo.idjg}?lg=fr`, GET);
+    return apiResponse.feuille;
+  }
+
+  /** Execute an action (Sell, buy, etc...) on the given player */
+  async playerAction(player: ILcdePlayer, action: LcdePlayerActions, actionData?: LcdePlayerActionsBuyData | LcdePlayerActionsMoveData): Promise<ILcdeStandings> {
+    if (action === LcdePlayerActions.Buy && !actionData) throw new Error("Missing LcdePlayerActionsBuyData parameter");
+    if (action === LcdePlayerActions.Move && !actionData) throw new Error("Missing LcdePlayerActionsMoveData parameter");
+
+    const round = await this.getCurrentRound();
+    const data = {
+      credentials: {
+        action,
+        idj: round.journee.id,
+        idf: player.id,
+        ...actionData,
+      }
+    };
+
+    // Default endpoint, for buy/sell
+    let endpoint = "actionsurjoueur";
+    if (action === LcdePlayerActions.Move) endpoint = "deplacejoueur";
+    if (action === LcdePlayerActions.SetCaptain) endpoint = "setrolejoueur";
+
+    const apiResponse = await this.performsLcdeApiCall<ILcdeTeamApiResponse>(`/private/${endpoint}?lg=fr`, POST, data);
+    return apiResponse.feuille;
   }
 
 }
