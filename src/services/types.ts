@@ -378,7 +378,8 @@ export enum LcdePosition {
 /** Lcde players game place */
 export enum LcdePlace {
   Field = "terrain",
-  Sub = "banc"
+  Sub = "banc",
+  Out = "reserve"
 }
 
 export interface ILcdeRoundApiResponse {
@@ -408,4 +409,41 @@ export interface ILcdePlayersStatsApiResponse {
   idjg: string;
   joueurs: ILcdePlayersStats[];
   total: number;
+}
+
+/** LCDE standings. Get team composition and standings */
+export interface ILcdeStandings {
+  postes: ILcdePlayer[];
+  composition: {
+    id: number;
+    repartition: string;
+  };
+  info: {
+    action: LcdePlayerActions;
+    message: string;
+  };
+}
+
+export interface ILcdeTeamApiResponse {
+  feuille: ILcdeStandings;
+  compositions?: any[];
+  idjg?: string;
+}
+
+/** Possible action for LCDE players */
+export enum LcdePlayerActions {
+  Sell = "vendre",
+  Buy = "acheter",
+  SetCaptain = "selectcap",
+  Move = "deplacer",
+}
+
+/** Requested buy data */
+export interface LcdePlayerActionsBuyData {
+  offre: number;
+}
+/** Requested move data */
+export interface LcdePlayerActionsMoveData {
+  numpbefore: number;
+  numpafter: number;
 }

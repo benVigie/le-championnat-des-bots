@@ -219,7 +219,7 @@ export default class ScoreCalculator {
 
     // Retrieve the bookmakers exact scores
     const scoreList = Helper.getBet(bookmakerBets, BetTypes.ExactScore).sort((a, b) => { return parseFloat(a.odd) - parseFloat(b.odd) });
-    if (!scoreList.length) return [0, 0];
+    if (!scoreList.length) return [0.5, 0.5];
 
     // Retrieve the max odds limit (aka the most valuable 1 rouded + 1) and its value to perform the ponderation
     const maxOdd = Math.ceil(parseFloat(scoreList[0].odd)) + 1;

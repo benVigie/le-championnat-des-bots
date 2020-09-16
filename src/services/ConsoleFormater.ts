@@ -1,6 +1,6 @@
 import * as chalk from "chalk";
 import { DateTime } from "luxon";
-import { IFixture, BetTypes, NO_PREDICTION_AVAILABLE, ITeamAndGame, IBetValues, ILcdePlayer, ILcdeInfos, LcdePosition } from "./types";
+import { IFixture, BetTypes, NO_PREDICTION_AVAILABLE, ITeamAndGame, IBetValues, ILcdePlayer, ILcdeInfos, LcdePosition, ILcdeStandings, LcdePlace } from "./types";
 import FootballApi from "./FootballAPI";
 import { ODD_DIFFERENCE_TRUST_LEVEL, ODD_DIFFERENCE_TOO_SMALL } from "../strategy/GameSorter";
 import { IPlayerList } from "../strategy/types";
@@ -158,6 +158,46 @@ export default class ConsoleFormater {
       line += chalk`\t{gray (Odd gap: ${player.teamAndGame.game.strategy.oddGap.toFixed(2)} - Goal ratio: ${Helper.getGoalRatio(player).toFixed(2)})}`;
       line += this.displayPlayerOwner(player, gamer);
       console.log(line);
+    }
+    console.log(chalk`{gray \n---}`);
+  }
+
+  /** Display the gamer's team */
+  static displayGamerTeam(standings: ILcdeStandings): void {
+    console.log(chalk`{bgMagenta \nMy team\n}`);
+    console.log(chalk`Formation: {cyan ${standings.composition.repartition}}\n`);
+
+    let line = "";
+    let previousPos = "";
+    let bench = false;
+    for (const player of standings.postes) {
+      // Display players by their position
+      if (!bench && player.position !== previousPos) {
+        if (line.length) console.log(line);
+        previousPos = player.position;
+        line = "";
+      }
+
+      // If we reach subs, display them in line
+      if (!bench && player.place === LcdePlace.Sub) {
+        bench = true;
+        if (line.length) console.log(line);
+        console.log("\nBanquette:");
+        line = "";
+      }
+
+      // Stop when reaching out
+      if (bench && player.place === LcdePlace.Out) {
+        if (line.length) console.log(line);
+        line = "";
+        break;
+      }
+
+      if (!player.id) line += chalk`{gray Empty}  `;
+      else if (player.position === LcdePosition.Keeper) line += chalk`{green ${player.nom}} (${player.club}) ${player.potentialScore?.average.toFixed(2)}  `;
+      else if (player.position === LcdePosition.Back) line += chalk`{yellow ${player.nom}} (${player.club}) ${player.potentialScore?.average.toFixed(2)}  `;
+      else if (player.position === LcdePosition.Midfield) line += chalk`{blue ${player.nom}} (${player.club}) ${player.potentialScore?.average.toFixed(2)}  `;
+      else line += chalk`{red ${player.nom}} (${player.club}) ${player.potentialScore?.average.toFixed(2)}  `;
     }
     console.log(chalk`{gray \n---}`);
   }

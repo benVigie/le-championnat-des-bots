@@ -8,6 +8,7 @@ import GameSorter from "./strategy/GameSorter";
 import ConsoleFormater from "./services/ConsoleFormater";
 import LcdeApi from "./services/LcdeAPI";
 import PlayerSorter from "./strategy/PlayerSorter";
+import TeamManager from "./services/TeamManager";
 
 /** ScoutBot is the app orchestrator */
 export default class ScoutBot {
@@ -19,6 +20,7 @@ export default class ScoutBot {
   private _nextGames: IFixture[];
   private _gameSorter: GameSorter;
   private _playerSorter: PlayerSorter;
+  private _teamManager: TeamManager;
 
   constructor(mode: AppMode, config: IConfiguration, args: IYargsArgs) {
     ScoutBot._mode = mode;
@@ -27,6 +29,7 @@ export default class ScoutBot {
     this._lcdeApi = new LcdeApi(args.email, args.password);
     this._gameSorter = new GameSorter(this._api);
     this._playerSorter = new PlayerSorter(this._lcdeApi);
+    this._teamManager = new TeamManager(this._lcdeApi);
     ScoutBot._appArgs = args;
   }
 
@@ -58,18 +61,28 @@ export default class ScoutBot {
 
       // Display strategy sort
       const strategySorted = await this._gameSorter.sortGamesByOdds(this._nextGames, ScoutBot._appArgs.interactive);
-      ConsoleFormater.displayStrategy(strategySorted, this._api);
 
       // And now sort by points and display teams by potential scores
       const teams = this._gameSorter.sortTeamsByPoints(strategySorted);
-      ConsoleFormater.displayTeamsByScore(teams);
 
       // Retrieve players list from the best teams
       const playerList = await this._playerSorter.getBestPlayers(teams);
+
+      // Retrieve our team
+      const myTeam = await this._teamManager.getTeam(playerList);
+      // Remove losers if interactive
+      if (ScoutBot.args.interactive) await this._teamManager.removeLosers();
+
+      ConsoleFormater.displayStrategy(strategySorted, this._api);
+
+      ConsoleFormater.displayTeamsByScore(teams);
+
       ConsoleFormater.displayBestPlayers(LcdePosition.Keeper, playerList, this._lcdeApi.userInfo);
       ConsoleFormater.displayBestPlayers(LcdePosition.Back, playerList, this._lcdeApi.userInfo);
       ConsoleFormater.displayBestPlayers(LcdePosition.Midfield, playerList, this._lcdeApi.userInfo);
       ConsoleFormater.displayBestPlayers(LcdePosition.Striker, playerList, this._lcdeApi.userInfo);
+
+      ConsoleFormater.displayGamerTeam(myTeam);
     }
     catch (error) {
       if (!Tools.dumpAxiosError(error)) {
