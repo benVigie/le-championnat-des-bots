@@ -1,4 +1,3 @@
-import Axios from "axios";
 import * as chalk from "chalk";
 import { prompts } from "prompts";
 // tslint:disable-next-line: max-line-length
@@ -6,6 +5,7 @@ import { IApiErrorResponse, IApiStatus, IApiStatusResponse, IApiFixturesResponse
 import Tools from "./Tools";
 import ScoutBot from "../ScoutBot";
 import Helper from "../strategy/Helper";
+import ClientApi from "./ClientApi";
 
 /** Football API URL */
 const FOOTBALL_API_URL = "https://v2.api-football.com";
@@ -19,21 +19,22 @@ const BOOKMAKERS: IBookmaker[] = [
 ];
 
 /** The FootballApi service manages calls to Football API rest API */
-export default class FootballApi {
+export default class FootballApi extends ClientApi {
   private _apiToken: string;
 
   constructor(token: string) {
+    super();
     this._apiToken = token;
   }
 
   /** Get request header. The Football API requires the token under X-RapidAPI-Key key */
   private get requestHeader(): any {
-    return { "X-RapidAPI-Key": this._apiToken }
+    return { "X-RapidAPI-Key": this._apiToken };
   }
 
   /** Perform a Football api request, and check the result */
   private async performsFootballApiCall<T>(endpoint: string): Promise<T> {
-    const response = await Axios.get(`${FOOTBALL_API_URL}${endpoint}`, { headers: this.requestHeader })
+    const response = await this.axios.get(`${FOOTBALL_API_URL}${endpoint}`, { headers: this.requestHeader });
 
     // Sanity checks
     if (response.status !== 200) {
@@ -45,7 +46,7 @@ export default class FootballApi {
     if ((response.data.api as IApiErrorResponse).error) {
       throw new Error(`API response error:\n${(response.data.api as IApiErrorResponse).error}`);
     }
-    return response.data.api
+    return response.data.api;
   }
 
   /** Get live API quota status */
@@ -70,7 +71,7 @@ export default class FootballApi {
       Tools.displayAction("Retrieving current round", true, !!roundResponse.fixtures.length);
       round = roundResponse.fixtures[0];
 
-      if (ScoutBot.args.interactive) round = await this.confirmRound(round);
+      if (ScoutBot.configuration.interactive) round = await this.confirmRound(round);
     }
 
     Tools.displayAction(`Retrieve round ${round} games`);
@@ -168,7 +169,7 @@ export default class FootballApi {
       message: "Which round do you want to compute ?",
       initial: parseInt(split[split.length - 1], 10),
       style: "default",
-      min: 1
+      min: 1,
     }) as unknown as number;
     return `Regular_Season_-_${selectedRound.toString()}`;
   }

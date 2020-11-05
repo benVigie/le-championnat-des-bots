@@ -1,4 +1,5 @@
-import Axios, { Method } from "axios";
+import { Method } from "axios";
+import ClientApi from "./ClientApi";
 // tslint:disable-next-line: max-line-length
 import { ILcdeInfos, ILcdePlayer, ILcdePlayersApiResponse, ILcdePlayersStats, ILcdePlayersStatsApiResponse, ILcdeRoundApiResponse, ILcdeStandings, ILcdeTeamApiResponse, LcdePlayerActions, LcdePlayerActionsBuyData, LcdePlayerActionsMoveData } from "./types";
 
@@ -28,20 +29,21 @@ const TEAM_CODE: any = {
   "Rennes": 18,
   "Saint Etienne": 19,
   "Strasbourg": 20,
-}
+};
 
 /** LCDE API URL */
 const LCDE_API_URL = "https://www.lechampionnatdesetoiles.fr/v1";
 
 
 /** LcdeApi service manages calls to Le Championnat Des Etoiles rest API */
-export default class LcdeApi {
+export default class LcdeApi extends ClientApi {
   private _email: string;
   private _password: string;
   private _infos: ILcdeInfos;
   private _currentRound: ILcdeRoundApiResponse;
 
   constructor(email: string, password: string) {
+    super();
     this._email = email;
     this._password = password;
   }
@@ -59,7 +61,7 @@ export default class LcdeApi {
   /** Get request header. LCDE deals with x-access-key and authorization */
   private get requestHeader(): any {
     const headers: any = {
-      "x-access-key": "580@1@"
+      "x-access-key": "580@1@",
     };
     if (this._infos) headers.Authorization = `token ${this._infos.token}`;
     return headers;
@@ -67,11 +69,11 @@ export default class LcdeApi {
 
   /** Perform LCDE api request, and check the result */
   private async performsLcdeApiCall<T>(endpoint: string, method: Method, data?: any): Promise<T> {
-    const response = await Axios.request({
+    const response = await this.axios.request({
       method,
       url: `${LCDE_API_URL}${endpoint}`,
       headers: this.requestHeader,
-      data
+      data,
     });
 
     // Sanity checks
@@ -85,10 +87,10 @@ export default class LcdeApi {
   async login(): Promise<ILcdeInfos> {
     const data = {
       user: {
-        "mail": this._email,
-        "password": this._password,
-        "fcmtoken": ""
-      }
+        mail: this._email,
+        password: this._password,
+        fcmtoken: "",
+      },
     };
     const apiResponse = await this.performsLcdeApiCall<any>("/public/login?lg=fr", POST, data);
     if (apiResponse.user) {
@@ -101,18 +103,18 @@ export default class LcdeApi {
   async getPlayersFromTeam<T>(teamName: string, journee: string | number): Promise<T[]> {
     const data = {
       filters: {
-        "nom": "",
-        "club": TEAM_CODE[teamName],
-        "position": "",
-        "budget_ok": false,
-        "engage": false,
-        "partant": false,
-        "idj": journee,
-        "pageIndex": 0,
-        "pageSize": DATA_LIMIT,
-        "loadSelect": 0,
-        "searchonly": 1
-      }
+        nom: "",
+        club: TEAM_CODE[teamName],
+        position: "",
+        budget_ok: false,
+        engage: false,
+        partant: false,
+        idj: journee,
+        pageIndex: 0,
+        pageSize: DATA_LIMIT,
+        loadSelect: 0,
+        searchonly: 1,
+      },
     };
     const apiResponse = await this.performsLcdeApiCall<ILcdePlayersApiResponse>("/private/searchjoueurs?lg=fr", POST, data);
     return apiResponse.joueurs as unknown as T[];
@@ -126,8 +128,8 @@ export default class LcdeApi {
         critereTri: "moyenne_points",
         loadSelect: 0,
         pageIndex: 0,
-        pageSize: DATA_LIMIT
-      }
+        pageSize: DATA_LIMIT,
+      },
     };
 
     const apiResponse = await this.performsLcdeApiCall<ILcdePlayersStatsApiResponse>("/private/stats?lg=fr", POST, data);
@@ -140,7 +142,7 @@ export default class LcdeApi {
       const round = await this.performsLcdeApiCall<ILcdeRoundApiResponse>("/private/journee?lg=fr", GET);
       this._currentRound = round;
     }
-    return this._currentRound
+    return this._currentRound;
   }
 
   /** Retrieve the gamer's current team */
@@ -162,7 +164,7 @@ export default class LcdeApi {
         idj: round.journee.id,
         idf: player.id,
         ...actionData,
-      }
+      },
     };
 
     // Default endpoint, for buy/sell
