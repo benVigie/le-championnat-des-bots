@@ -1,4 +1,4 @@
-import { AppMode, IConfiguration, IYargsArgs } from "./Main";
+import { IConfiguration } from "./Main";
 import FootballApi from "./services/FootballAPI";
 import Tools from "./services/Tools";
 import { IFixture, LcdePosition } from "./services/types";
@@ -13,8 +13,6 @@ import TeamManager from "./services/TeamManager";
 /** ScoutBot is the app orchestrator */
 export default class ScoutBot {
   private static _config: IConfiguration;
-  private static _mode: AppMode;
-  private static _appArgs: IYargsArgs;
   private _api: FootballApi;
   private _lcdeApi: LcdeApi;
   private _nextGames: IFixture[];
@@ -22,25 +20,20 @@ export default class ScoutBot {
   private _playerSorter: PlayerSorter;
   private _teamManager: TeamManager;
 
-  constructor(mode: AppMode, config: IConfiguration, args: IYargsArgs) {
-    ScoutBot._mode = mode;
+  constructor(config: IConfiguration) {
     ScoutBot._config = config;
-    this._api = new FootballApi(args.token);
-    this._lcdeApi = new LcdeApi(args.email, args.password);
+    this._api = new FootballApi(config.footballApiToken);
+    this._lcdeApi = new LcdeApi(config.lcdeEmail, config.lcdePassword);
     this._gameSorter = new GameSorter(this._api);
     this._playerSorter = new PlayerSorter(this._lcdeApi);
     this._teamManager = new TeamManager(this._lcdeApi);
-    ScoutBot._appArgs = args;
   }
-
-  /** Retrieve app mode, either dev or production */
-  static get mode(): AppMode { return ScoutBot._mode; }
 
   /** Retrieve app config */
   static get configuration(): IConfiguration { return ScoutBot._config; }
 
   /** Retrieve app args */
-  static get args(): IYargsArgs { return ScoutBot._appArgs; }
+  // static get args(): IYargsArgs { return ScoutBot._appArgs; }
 
   /** Start the scout bot */
   async startScouting(): Promise<void> {
@@ -51,7 +44,7 @@ export default class ScoutBot {
 
       // If nothing was saved today, retrieved games
       if (!this._nextGames.length) {
-        this._nextGames = await this._api.getCurrentRoundGames(ScoutBot._appArgs.round);
+        this._nextGames = await this._api.getCurrentRoundGames(ScoutBot.configuration.round);
 
         // Retrieve and attach pronostics and save the day :p
         await this._api.getAndAttachPronostics(this._nextGames);
@@ -60,7 +53,7 @@ export default class ScoutBot {
       }
 
       // Display strategy sort
-      const strategySorted = await this._gameSorter.sortGamesByOdds(this._nextGames, ScoutBot._appArgs.interactive);
+      const strategySorted = await this._gameSorter.sortGamesByOdds(this._nextGames, ScoutBot.configuration.interactive);
 
       // And now sort by points and display teams by potential scores
       const teams = this._gameSorter.sortTeamsByPoints(strategySorted);
@@ -71,7 +64,7 @@ export default class ScoutBot {
       // Retrieve our team
       const myTeam = await this._teamManager.getTeam(playerList);
       // Remove losers if interactive
-      if (ScoutBot.args.interactive) await this._teamManager.removeLosers();
+      if (ScoutBot.configuration.interactive) await this._teamManager.removeLosers();
 
       ConsoleFormater.displayStrategy(strategySorted, this._api);
 
