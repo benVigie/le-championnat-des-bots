@@ -18,3 +18,7 @@ coverage
 #lolMac & vs code
 .DS_Store
 TODO
+
+# Only save default empty config
+*config.json
+!config.json

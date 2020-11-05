@@ -1,8 +1,0 @@
-{
-  "dev": {
-    "debugTrace": true
-  },
-  "production": {
-    "debugTrace": false
-  }
-}
