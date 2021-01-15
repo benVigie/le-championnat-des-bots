@@ -107,6 +107,7 @@ export default class ConsoleFormater {
         if (team.potentialScore.average >= 5) {
           let line = "";
           line = (position <= 6) ? chalk`{bold.green ${position++}) ${team.team_name}} ` : chalk`{green ${position++}) ${team.team_name}} `;
+          line += this.displayHomeOrAway(team);
           line += this.displayTeamForme(team.standing.forme);
           console.log(chalk`${line}\t{yellow (${team.potentialScore.min.toFixed(2)}/${team.potentialScore.max.toFixed(2)})  {bold ${team.potentialScore.average.toFixed(2)}}}   {gray ${team.game.strategy.oddGap.toFixed(2)}}`);
 
@@ -228,6 +229,14 @@ export default class ConsoleFormater {
       else formeViewer += chalk`{bold.red o}`;
     }
     return formeViewer;
+  }
+
+  /** Helper for home or away position */
+  private static displayHomeOrAway(team: ITeamAndGame): string {
+    if (team.game.homeTeam.team_id === team.team_id) {
+      return "⚽ ";
+    }
+    return "🛫 ";
   }
 
   /** Format for owner display */
