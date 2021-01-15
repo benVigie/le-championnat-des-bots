@@ -88,7 +88,7 @@ export default class FootballApi extends ClientApi {
       Tools.displayAction(`Retrieving ${games[i].homeTeam.team_name} - ${games[i].awayTeam.team_name} predictions`);
       const pronosticsResponse = await this.performsFootballApiCall<IApiPredictionsResponse>(`/predictions/${games[i].fixture_id}`);
       Tools.displayAction(`Retrieving ${games[i].homeTeam.team_name} - ${games[i].awayTeam.team_name} predictions`, true, !!pronosticsResponse.predictions);
-      if (pronosticsResponse.predictions[0]) {
+      if (pronosticsResponse.predictions && pronosticsResponse.predictions[0]) {
         delete pronosticsResponse.predictions[0].h2h;
         games[i].pronostics = pronosticsResponse.predictions[0];
       }
@@ -103,7 +103,7 @@ export default class FootballApi extends ClientApi {
     // Retrieve pronostics and attach them
     Tools.displayAction(`Retrieving league standings`);
     const standingsResponse = await this.performsFootballApiCall<IApiStandingsResponse>(`/leagueTable/${LIGUE_1_ID}`);
-    if (standingsResponse.standings[0].length) {
+    if (standingsResponse.standings && standingsResponse.standings[0].length) {
       Tools.displayAction(`Retrieving league standings (last update ${standingsResponse.standings[0][0].lastUpdate})`, true, true);
       for (const game of games) {
         this.attachStandingToTeam(standingsResponse.standings[0], game.homeTeam);
@@ -117,7 +117,7 @@ export default class FootballApi extends ClientApi {
   private async getBookmakerOdds(game: IFixture, bookmaker: number): Promise<void> {
     Tools.displayAction(`Retrieving ${game.homeTeam.team_name} - ${game.awayTeam.team_name} bookmakers (${BOOKMAKERS[bookmaker].bookmaker_name}) odds`);
     const bookiesResponse = await this.performsFootballApiCall<IApiBookmakerOddsResponse>(`/odds/fixture/${game.fixture_id}/bookmaker/${BOOKMAKERS[bookmaker].bookmaker_id}`);
-    if (bookiesResponse.odds[0] && bookiesResponse.odds[0].bookmakers[0]) {
+    if (bookiesResponse.odds && bookiesResponse.odds[0] && bookiesResponse.odds[0].bookmakers[0]) {
       game.odds = bookiesResponse.odds[0].bookmakers[0];
     }
 

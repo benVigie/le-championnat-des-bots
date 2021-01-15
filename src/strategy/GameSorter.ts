@@ -99,7 +99,7 @@ export default class GameSorter {
     let confidenceScore = ((oddGap - 1) * 100) > 100 ? 100 : ((oddGap - 1) * 100);
 
     // Add points if pronostics and odds points to the same winner
-    if (oddWinner === predictions.match_winner || predictions.advice === NO_PREDICTION_AVAILABLE) confidenceScore += 20;
+    if (predictions && (oddWinner === predictions.match_winner || predictions.advice === NO_PREDICTION_AVAILABLE)) confidenceScore += 20;
 
     // Add points if goals odds are the same as match winner
     if (scores.length) {

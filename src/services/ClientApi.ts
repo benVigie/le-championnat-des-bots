@@ -9,7 +9,7 @@ export default class ClientApi {
   /** The app configurated axios instance */
   get axios(): AxiosInstance {
     if (!ClientApi._axiosInstance) {
-      if (ScoutBot.configuration?.proxy !== "") {
+      if (ScoutBot.configuration?.proxy) {
         const axiosDefaultConfig: AxiosRequestConfig = {
           proxy: false,
           httpsAgent: new HttpsProxyAgent(ScoutBot.configuration.proxy),
